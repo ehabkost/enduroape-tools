@@ -56,6 +56,7 @@ class Group:
         for p in self.pages:
             p.lines = [l[p.left:p.right] for l in self.lines]
 
+CUR_VEL = None
 
 class Page:
     def __init__(self, g):
@@ -87,6 +88,7 @@ class Page:
         self.add_sidenote(i+offset, note)
 
     def parse_sheet(self):
+        global CUR_VEL
         self.sheet_lines = self.lines[:]
 
         def match(pat):
@@ -177,6 +179,13 @@ class Page:
                     state.cur_abs = int(m.group(1))
                     dbg('got state.cur_abs')
                     continue
+
+            m = re.search(u'Velocidade Média *([0-9]+) ', full_line)
+            if m:
+                vel = int(m.group(1))
+                steps_min = float(vel)/PASSO
+                self.add_sidenote(i, '%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
+                CUR_VEL = vel
 
             if re.search('^ *TRECHO +[0-9]+ *$', full_line):
                 # início de trecho: reseta abs
@@ -274,6 +283,9 @@ def _parse_pages(pages):
             dbg('sheet item: %r', i)
             yield p,i
 
+def msec_to_mmin(v):
+    return v*60
+
 def parse_pages(pages):
     prev_time = 0
     prev_abs = 0
@@ -293,11 +305,15 @@ def parse_pages(pages):
             assert cur_relative == 0
 
         if t_delta > 0:
-            speed_m_sec = float(cur_relative)/t_delta
-            speed_m_min = speed_m_sec*60
+            min_speed = msec_to_mmin((cur_relative-0.5)/(t_delta+0.5))
+            max_speed = msec_to_mmin((cur_relative+0.5)/(t_delta-0.5))
+            speed = msec_to_mmin(float(cur_relative)/t_delta)
 
         if cur_relative > 0 and t_delta > 0:
-            p.add_sheet_sidenote(i-2, 'velocidade: %.1f m/min' % (speed_m_min))
+            note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
+            if CUR_VEL < min_speed or CUR_VEL > max_speed:
+                note += ' *** DIFERENTE DO TRECHO'
+            p.add_sheet_sidenote(i-2, note)
 
         if cur_relative > 0:
             p.add_sheet_sidenote(i-1, 'passos: %.1f' % (float(cur_relative)/PASSO))
