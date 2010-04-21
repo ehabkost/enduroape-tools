@@ -188,11 +188,11 @@ class Page:
         for i,l in enumerate(self.col_lines(0)):
             if state.cur_abs == 0 and state.cur_time is None:
                 # exception: cur_time is implicit if cur_abs is 0
-                if state.cur_time is None:
-                    state.cur_time = 0
+                state.cur_time = 0
 
             if state.cur_relative is not None and state.cur_time is not None and state.cur_abs is not None:
-                yield Referencia(self, i, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
+                # i-1 because the item ended on the previous line
+                yield Referencia(self, i-1, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
                 state.cur_time = None
                 state.cur_relative = None
                 state.cur_abs = None
