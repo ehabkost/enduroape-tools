@@ -107,17 +107,10 @@ class Neutro(PageItem):
     """
     pass
 
-class SpeedChange(PageItem):
-    """Speed change
-
-    properties: speed
-    """
-    pass
-
-class ResetAbsDist(PageItem):
+class NovoTrecho(PageItem):
     """Request to reset absolute distance counter
 
-    properties: none
+    properties: number, speed
     """
     pass
 
@@ -189,6 +182,8 @@ class Page:
         state.cur_time = None
         state.cur_abs = None
         state.wait_neutro = False
+        state.wait_speed = False
+        state.num_trecho = None
 
         for i,l in enumerate(self.col_lines(0)):
             if state.cur_abs == 0 and state.cur_time is None:
@@ -241,15 +236,19 @@ class Page:
                     dbg('got state.cur_abs')
                     continue
 
+            m = re.search('^ *TRECHO +([0-9]+) *$', full_line)
+            if m:
+                # início de trecho: reseta abs
+                state.num_trecho = int(m.group(1))
+                state.wait_speed = True
+                continue
+
             m = re.search(u'Velocidade Média *([0-9]+) ', full_line)
             if m:
+                assert state.wait_speed
                 vel = int(m.group(1))
-                yield SpeedChange(self, i, speed=vel)
-
-            if re.search('^ *TRECHO +[0-9]+ *$', full_line):
-                # início de trecho: reseta abs
-                yield ResetAbsDist(self, i)
-                continue
+                yield NovoTrecho(self, i, number=state.num_trecho, speed=vel)
+                state.wait_speed = False
 
             if re.search('^ *NEUTRALIZADO DE ', full_line):
                 state.wait_neutro = True
@@ -351,21 +350,34 @@ def parse_pages(opts, pages):
     prev_dist = 0
 
     cur_speed = None
+    cur_trecho = 0
+    ref_num = 0
 
     post_neutro = False
+    novo_trecho = False
+
     #for p,(i,cur_relative,cur_time,cur_abs) in _parse_pages(pages):
     for item in _parse_pages(pages):
         if isinstance(item, Referencia):
+            ref_num += 1
+
+            # a distância absoluta é resetada em pontos aleatórios:
+            if item.abs_dist == item.rel_dist:
+                item.add_sidenote('*** abs_dist reset')
+                prev_dist = 0
+
             # cur_abs == 0 means it was just reset
             if item.abs_dist <> prev_dist + item.rel_dist:
-                logger.error("Distance doesn't match prev_abs + rel_dist (%d <> %d)" % (item.abs_dist, prev_dist+item.rel_dist))
+                logger.error("ref %d: Distance doesn't match prev_abs + rel_dist (%d <> %d+%d)" % (ref_num, item.abs_dist, prev_dist, item.rel_dist))
 
             t_delta = item.abs_time-prev_time
             assert t_delta >= 0
             assert (t_delta > 0) or (prev_time == 0) or (post_neutro)
 
             assert item.rel_dist >= 0
-            assert (item.rel_dist > 0) or (prev_dist == 0)
+            #assert (item.rel_dist > 0) or (prev_dist == 0)
+
+            item.add_sidenote("Referencia: %d" % (ref_num), -3)
 
             if t_delta > 0:
                 min_speed = msec_to_mmin((item.rel_dist-0.5)/(t_delta+0.5))
@@ -380,17 +392,21 @@ def parse_pages(opts, pages):
             item.add_sidenote('passos: %.1f' % (float(item.rel_dist)/PASSO), -1)
 
             post_neutro = False
+            novo_trecho = False
             prev_dist = item.abs_dist
             prev_time = item.abs_time
-        elif isinstance(item, SpeedChange):
+        elif isinstance(item, NovoTrecho):
+            assert item.number == cur_trecho+1
             steps_min = float(item.speed)/PASSO
             item.add_sidenote('%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
 
             cur_speed = item.speed
-        elif isinstance(item, ResetAbsDist):
-            prev_dist = 0
+            cur_trecho = item.number
+            novo_trecho = True
+            #prev_dist = 0
         elif isinstance(item, Neutro):
             post_neutro = True
+            prev_time = item.abs_time
 
         prev_item = item
 
