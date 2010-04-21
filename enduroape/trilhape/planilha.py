@@ -90,6 +90,9 @@ class PageItem:
     def __repr__(self):
         return '<%s: %r>' % (self.__class__, self.__dict__)
 
+    def add_sidenote(self, msg, offset=0):
+        self.page.add_sheet_sidenote(self.sheet_line+offset, msg)
+
 class Referencia(PageItem):
     """Referência
 
@@ -372,16 +375,16 @@ def parse_pages(opts, pages):
                 note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
                 if cur_speed < min_speed or cur_speed > max_speed:
                     note += ' *** DIFERENTE DO TRECHO'
-                item.page.add_sheet_sidenote(item.sheet_line-2, note)
+                item.add_sidenote(note, -2)
 
-            item.page.add_sheet_sidenote(item.sheet_line-1, 'passos: %.1f' % (float(item.rel_dist)/PASSO))
+            item.add_sidenote('passos: %.1f' % (float(item.rel_dist)/PASSO), -1)
 
             post_neutro = False
             prev_dist = item.abs_dist
             prev_time = item.abs_time
         elif isinstance(item, SpeedChange):
             steps_min = float(item.speed)/PASSO
-            item.page.add_sheet_sidenote(item.sheet_line, '%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
+            item.add_sidenote('%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
 
             cur_speed = item.speed
         elif isinstance(item, ResetAbsDist):
