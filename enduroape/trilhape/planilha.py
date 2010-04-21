@@ -82,7 +82,9 @@ class Group:
 
 class PageItem:
     """Um item na planilha"""
-    def __init__(self, **kwargs):
+    def __init__(self, page, sheet_line, **kwargs):
+        self.page = page
+        self.sheet_line = sheet_line
         self.__dict__.update(kwargs)
 
     def __repr__(self):
@@ -192,8 +194,7 @@ class Page:
                     state.cur_time = 0
 
             if state.cur_relative is not None and state.cur_time is not None and state.cur_abs is not None:
-                item = Referencia(page=self, page_index=i, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
-                yield item
+                yield Referencia(self, i, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
                 state.cur_time = None
                 state.cur_relative = None
                 state.cur_abs = None
@@ -208,8 +209,7 @@ class Page:
                 if m:
                     h,m,s = [int(s) for s in m.groups()]
                     t = h*3600+m*60+s
-                    item = Neutro(page=self, page_index=i, abs_time=t)
-                    yield item
+                    yield Neutro(self, i, abs_time=t)
                     state.wait_neutro = False
                     continue
 
@@ -241,11 +241,11 @@ class Page:
             m = re.search(u'Velocidade Média *([0-9]+) ', full_line)
             if m:
                 vel = int(m.group(1))
-                yield SpeedChange(page=self, page_index=i, speed=vel)
+                yield SpeedChange(self, i, speed=vel)
 
             if re.search('^ *TRECHO +[0-9]+ *$', full_line):
                 # início de trecho: reseta abs
-                yield ResetAbsDist(page=self, page_index=i)
+                yield ResetAbsDist(self, i)
                 continue
 
             if re.search('^ *NEUTRALIZADO DE ', full_line):
@@ -372,16 +372,16 @@ def parse_pages(opts, pages):
                 note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
                 if cur_speed < min_speed or cur_speed > max_speed:
                     note += ' *** DIFERENTE DO TRECHO'
-                item.page.add_sheet_sidenote(item.page_index-2, note)
+                item.page.add_sheet_sidenote(item.sheet_line-2, note)
 
-            item.page.add_sheet_sidenote(item.page_index-1, 'passos: %.1f' % (float(item.rel_dist)/PASSO))
+            item.page.add_sheet_sidenote(item.sheet_line-1, 'passos: %.1f' % (float(item.rel_dist)/PASSO))
 
             post_neutro = False
             prev_dist = item.abs_dist
             prev_time = item.abs_time
         elif isinstance(item, SpeedChange):
             steps_min = float(item.speed)/PASSO
-            item.page.add_sheet_sidenote(item.page_index, '%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
+            item.page.add_sheet_sidenote(item.sheet_line, '%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
 
             cur_speed = item.speed
         elif isinstance(item, ResetAbsDist):
