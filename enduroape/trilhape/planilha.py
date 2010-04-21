@@ -144,6 +144,9 @@ class Page:
         self.add_sidenote(i+offset, note)
 
     def parse_sheet(self):
+        """Returns an iterator on the items on the sheet page
+        """
+
         self.sheet_lines = self.lines[:]
 
         def match(pat):
@@ -184,19 +187,32 @@ class Page:
         state.wait_neutro = False
         state.wait_speed = False
         state.num_trecho = None
+        state.last_ref_data_line = None
 
-        for i,l in enumerate(self.col_lines(0)):
+        def foo():
+            dbg("bar")
+
+        def check_referencia():
+            """Verifica se há nova referência pronta para ser enviada"""
+            dbg("check_ref: cur_abs: %r, cur_rel: %r, cur_time: %r", state.cur_abs, state.cur_relative, state.cur_time)
+
             if state.cur_abs == 0 and state.cur_time is None:
                 # exception: cur_time is implicit if cur_abs is 0
                 state.cur_time = 0
 
             if state.cur_relative is not None and state.cur_time is not None and state.cur_abs is not None:
+                dbg("got new reference")
                 # i-1 because the item ended on the previous line
-                yield Referencia(self, i-1, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
+                r = Referencia(self, state.last_ref_data_line, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
                 state.cur_time = None
                 state.cur_relative = None
                 state.cur_abs = None
                 state.wait_neutro = False
+                return r
+
+        for i,l in enumerate(self.col_lines(0)):
+            r = check_referencia()
+            if r: yield r
 
             full_line = self.sheet_lines[i]
             dbg('col: %r', l)
@@ -216,6 +232,7 @@ class Page:
                 if m:
                     dbg('got state.cur_rel')
                     state.cur_relative = int(m.group(1))
+                    state.last_ref_data_line = i
                     continue
 
             if state.cur_time is None:
@@ -227,12 +244,14 @@ class Page:
                     assert 0 <= s < 60
                     dbg('got state.cur_time')
                     state.cur_time = h*3600+m*60+s
+                    state.last_ref_data_line = i
                     continue
 
             if state.cur_relative is not None and (state.cur_time is not None or state.cur_relative == 0) and state.cur_abs is None:
                 m = re.search('^ *([0-9]{3}) *$', l)
                 if m:
                     state.cur_abs = int(m.group(1))
+                    state.last_ref_data_line = i
                     dbg('got state.cur_abs')
                     continue
 
@@ -265,7 +284,10 @@ class Page:
 
             m = re.search('^ *$', l)
             if not m:
-                raise Exception("unexpected line: %r" % (l))
+                raise Exception("unexpected line (%d): %r" % (i, l))
+
+        r = check_referencia()
+        if r: yield r
 
 
     def show(self, opts):
