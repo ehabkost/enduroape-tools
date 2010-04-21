@@ -44,6 +44,16 @@ def pr(s, *args):
     s = s.encode('utf-8')
     print s
 
+def format_time(t):
+    t_sec = t
+    sec = t%60
+    t_sec -= sec
+    t_min = int(t_sec/60)
+    min = t_min%60
+    t_min -= min
+    t_hour = int(t_min/60)
+    return '%02d:%02d:%02d' % (t_hour, min, sec)
+
 class Group:
     def find_width(self):
         width = max([len(l) for l in self.lines])
@@ -80,7 +90,12 @@ class Group:
         for p in self.pages:
             p.lines = [l[p.left:p.right] for l in self.lines]
 
-class PageItem:
+class CircuitoItem:
+    """Um item no circuito (não necessariamente presente na planilha"""
+    def __init__(self, **kwargs):
+        self.__dict__.update(**kwargs)
+
+class PageItem(CircuitoItem):
     """Um item na planilha"""
     def __init__(self, page, sheet_line, **kwargs):
         self.page = page
@@ -96,14 +111,21 @@ class PageItem:
 class Referencia(PageItem):
     """Referência
 
-    properties: abs_dist, rel_dist, abs_time
+    properties: abs_dist, rel_dist, abs_time, rel_passos, ref_number
+    """
+    pass
+
+class Parcial(CircuitoItem):
+    """Uma parcial
+
+    properties: abs_dist, rel_dist, abs_time, rel_passos, ref_number
     """
     pass
 
 class Neutro(PageItem):
     """Neutro
 
-    properties: abs_time
+    properties: abs_time, rel_dist(==0), ref_number
     """
     pass
 
@@ -194,7 +216,7 @@ class Page:
 
         def check_referencia():
             """Verifica se há nova referência pronta para ser enviada"""
-            dbg("check_ref: cur_abs: %r, cur_rel: %r, cur_time: %r", state.cur_abs, state.cur_relative, state.cur_time)
+            #dbg("check_ref: cur_abs: %r, cur_rel: %r, cur_time: %r", state.cur_abs, state.cur_relative, state.cur_time)
 
             if state.cur_abs == 0 and state.cur_time is None:
                 # exception: cur_time is implicit if cur_abs is 0
@@ -367,76 +389,194 @@ def _parse_pages(pages):
 def msec_to_mmin(v):
     return v*60
 
+class CircuitoState:
+    """Keep track of the current state of sheet parsing"""
+    def __init__(self, orig=None):
+        if orig is not None:
+            # copy data
+            self.__dict__.update(orig.__dict__)
+            return
+
+        self.abs_dist = 0
+        self.abs_time = 0
+        self.prev_abs_time = None
+        self.trecho_dist = 0
+        self.trecho_time = 0
+
+        # last_ref: última Referencia ou Neutro
+        self.last_ref = None
+        self.last_ref_num = 0
+
+    def copy(self):
+        return CircuitoState(self)
+
+    def add_dist(self, rel_dist):
+        self.trecho_dist += rel_dist
+        self.abs_dist += rel_dist
+
+    def add_time(self, rel_time):
+        dbg("add_time: %d", rel_time)
+        self.trecho_time += rel_time
+
+    def reset_trecho(self):
+        self.trecho_time = 0
+        self.trecho_dist = 0
+
+    def update_abs_time(self, t):
+        self.prev_abs_time = self.abs_time
+        self.abs_time = t
+
+        t_delta = self.abs_time - self.prev_abs_time
+        assert t_delta >= 0
+        assert (t_delta > 0) or (self.prev_abs_time == 0) or (isinstance(self.last_ref, Neutro))
+        self.add_time(t_delta)
+        return t_delta
+
+    def _new_ref(self, ref, ref_number):
+        # throw away the previous reference so it is not copied
+        self.previous_state = None
+        # make a copy of current state and store it
+        self.previous_state = self.copy()
+
+        t_delta = self.update_abs_time(ref.abs_time)
+        ref.rel_time = t_delta
+        ref.ref_number = ref_number
+
+        ref.rel_passos = ref.rel_dist/PASSO
+
+        self.last_ref = ref
+
+    def new_ref(self, ref):
+        self.last_ref_num += 1
+        num = str(self.last_ref_num)
+        self._new_ref(ref, num)
+        ref.add_sidenote("Referencia: %s" % (ref.ref_number), -3)
+
+    def posicoes_parciais(self, passos):
+        # algoritmo:
+        # - gera 1 parciais de 5, 10, 20, e 30 passos para
+        #   pegar 'feeling' da velocidade
+        # - gera parciais de 30 passos até chegar a 30 passos do final
+        # - gera 3 parciais de 10 passos até chegar a 10 passos do final
+        # - parcial a 5 passos do final
+
+        if passos < 10:
+            return
+
+        lp = 0
+        for p in (5, 10, 20, 30):
+            if p >= passos/2:
+                break
+            yield p
+            lp = p
+
+        p = 60
+        while p < passos-30:
+            yield p
+            lp = p
+            p += 30
+
+        for mp in (30,20,10,5):
+            p = passos-mp
+            dbg("ending: %s", p)
+            if p > lp+(mp/2):
+                yield p
+                lp = p
+
+
+    def gera_parciais(self):
+        prev = self.previous_state
+        rel_dist = self.abs_dist-prev.abs_dist
+        rel_time = self.abs_time-prev.abs_time
+        passos = float(rel_dist)/PASSO
+
+        for i,p in enumerate(self.posicoes_parciais(int(passos))):
+            partial_dist = p*PASSO
+            partial_time = rel_time*(float(partial_dist)/rel_dist)
+            abs_time = prev.abs_time+partial_time
+            abs_dist = prev.abs_dist+partial_dist
+
+            item = Parcial(abs_time=abs_time, abs_dist=abs_dist, rel_time=partial_time, rel_dist=partial_dist)
+            # copy current state and update it according to the partial data
+            stcopy = prev.copy()
+            number = '%s.%d' % (prev.last_ref.ref_number, i+1)
+            stcopy._new_ref(item, number)
+            yield stcopy,item
+
 def parse_pages(opts, pages):
-    prev_time = 0
-    prev_dist = 0
+    """Generate state,item tuples
 
-    cur_speed = None
-    cur_trecho = 0
-    ref_num = 0
+    'item' is the sheet item we just handled
+    'state' contains the current state after handling the item.
+    """
+    st = CircuitoState()
 
-    post_neutro = False
-    novo_trecho = False
+    # keep track of the abs_dist data from the sheet, but
+    # it is reset randomly, so probably it can be ignored
+    st.sheet_abs_dist = 0
+    st.speed = None
+    st.last_trecho_num = 0
 
     #for p,(i,cur_relative,cur_time,cur_abs) in _parse_pages(pages):
     for item in _parse_pages(pages):
         if isinstance(item, Referencia):
-            ref_num += 1
+            # update current state based on new data:
+            st.new_ref(item)
+            st.add_dist(item.rel_dist)
 
             # a distância absoluta é resetada em pontos aleatórios:
             if item.abs_dist == item.rel_dist:
                 item.add_sidenote('*** abs_dist reset')
-                prev_dist = 0
+                st.sheet_abs_dist = 0
 
             # cur_abs == 0 means it was just reset
-            if item.abs_dist <> prev_dist + item.rel_dist:
-                logger.error("ref %d: Distance doesn't match prev_abs + rel_dist (%d <> %d+%d)" % (ref_num, item.abs_dist, prev_dist, item.rel_dist))
+            if item.abs_dist <> st.sheet_abs_dist + item.rel_dist:
+                logger.error("ref %d: Distance doesn't match prev_abs + rel_dist (%d <> %d+%d)" % (st.last_ref_num, item.abs_dist, st.sheet_abs_dist, item.rel_dist))
 
-            t_delta = item.abs_time-prev_time
-            assert t_delta >= 0
-            assert (t_delta > 0) or (prev_time == 0) or (post_neutro)
+            st.sheet_abs_dist = item.abs_dist
 
             assert item.rel_dist >= 0
-            #assert (item.rel_dist > 0) or (prev_dist == 0)
+            assert (item.rel_dist > 0) or (st.trecho_dist == 0)
 
-            item.add_sidenote("Referencia: %d" % (ref_num), -3)
-
-            if t_delta > 0:
-                min_speed = msec_to_mmin((item.rel_dist-0.5)/(t_delta+0.5))
-                max_speed = msec_to_mmin((item.rel_dist+0.5)/(t_delta-0.5))
-                speed = msec_to_mmin(float(item.rel_dist)/t_delta)
+            if item.rel_time:
+                min_speed = msec_to_mmin((item.rel_dist-0.5)/(item.rel_time+0.5))
+                max_speed = msec_to_mmin((item.rel_dist+0.5)/(item.rel_time-0.5))
+                speed = msec_to_mmin(float(item.rel_dist)/item.rel_time)
 
                 note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
-                if cur_speed < min_speed or cur_speed > max_speed:
+                if st.speed < min_speed or st.speed > max_speed:
                     note += ' *** DIFERENTE DO TRECHO'
                 item.add_sidenote(note, -2)
 
             item.add_sidenote('passos: %.1f' % (float(item.rel_dist)/PASSO), -1)
 
-            post_neutro = False
-            novo_trecho = False
-            prev_dist = item.abs_dist
-            prev_time = item.abs_time
+            if opts.parciais:
+                for s,p in st.gera_parciais():
+                    yield s,p
+
+        elif isinstance(item, Neutro):
+            item.rel_dist = 0
+            st.new_ref(item)
         elif isinstance(item, NovoTrecho):
-            assert item.number == cur_trecho+1
+            assert item.number == st.last_trecho_num+1
             steps_min = float(item.speed)/PASSO
             item.add_sidenote('%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
 
-            cur_speed = item.speed
-            cur_trecho = item.number
-            novo_trecho = True
-            #prev_dist = 0
-        elif isinstance(item, Neutro):
-            post_neutro = True
-            prev_time = item.abs_time
+            st.speed = item.speed
+            st.last_trecho_num = item.number
+            st.reset_trecho()
+        else:
+            raise Exception("Unexpected item class: %r" % (item))
 
-        prev_item = item
+        # copy current state and return it
+        s = st.copy()
+        yield s,item
 
 
 def main(argv):
     parser = optparse.OptionParser()
-    #parser.add_option('-P', help="Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
-    #parser.add_option('-p', help="Calcular parciais", action='store_true', dest='partial_calc')
+    parser.add_option('-P', help="Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
+    parser.add_option('-p', help="Calcular parciais", action='store_true', dest='parciais')
     parser.add_option('-D', help="Mostrar mensagens de debug", action='store_true', dest='debug')
 
     opts,args = parser.parse_args(argv)
@@ -467,9 +607,14 @@ def main(argv):
         for p in g.pages:
             pages.append(p)
 
-    parse_pages(opts, pages)
-    for p in pages:
-        p.show(opts)
+    for state,item in parse_pages(opts, pages):
+        if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
+            print '%-5s %s %5.1f %5d' % (item.ref_number, format_time(state.abs_time), item.rel_passos, item.rel_dist)
+        #print repr(state.__dict__),repr(item)
+
+    if opts.show_pages:
+        for p in pages:
+            p.show(opts)
 
 
 
