@@ -80,7 +80,41 @@ class Group:
         for p in self.pages:
             p.lines = [l[p.left:p.right] for l in self.lines]
 
-CUR_VEL = None
+class PageItem:
+    """Um item na planilha"""
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def __repr__(self):
+        return '<%s: %r>' % (self.__class__, self.__dict__)
+
+class Referencia(PageItem):
+    """Referência
+
+    properties: abs_dist, rel_dist, abs_time
+    """
+    pass
+
+class Neutro(PageItem):
+    """Neutro
+
+    properties: abs_time
+    """
+    pass
+
+class SpeedChange(PageItem):
+    """Speed change
+
+    properties: speed
+    """
+    pass
+
+class ResetAbsDist(PageItem):
+    """Request to reset absolute distance counter
+
+    properties: none
+    """
+    pass
 
 class Page:
     def __init__(self, g):
@@ -112,7 +146,6 @@ class Page:
         self.add_sidenote(i+offset, note)
 
     def parse_sheet(self):
-        global CUR_VEL
         self.sheet_lines = self.lines[:]
 
         def match(pat):
@@ -159,7 +192,8 @@ class Page:
                     state.cur_time = 0
 
             if state.cur_relative is not None and state.cur_time is not None and state.cur_abs is not None:
-                yield i,state.cur_relative,state.cur_time,state.cur_abs
+                item = Referencia(page=self, page_index=i, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
+                yield item
                 state.cur_time = None
                 state.cur_relative = None
                 state.cur_abs = None
@@ -174,8 +208,8 @@ class Page:
                 if m:
                     h,m,s = [int(s) for s in m.groups()]
                     t = h*3600+m*60+s
-                    # neutro == trecho de 0 metros com tempo percorrido
-                    yield i,0,t,0
+                    item = Neutro(page=self, page_index=i, abs_time=t)
+                    yield item
                     state.wait_neutro = False
                     continue
 
@@ -207,13 +241,11 @@ class Page:
             m = re.search(u'Velocidade Média *([0-9]+) ', full_line)
             if m:
                 vel = int(m.group(1))
-                steps_min = float(vel)/PASSO
-                self.add_sidenote(i, '%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
-                CUR_VEL = vel
+                yield SpeedChange(page=self, page_index=i, speed=vel)
 
             if re.search('^ *TRECHO +[0-9]+ *$', full_line):
                 # início de trecho: reseta abs
-                yield i,0,None,0
+                yield ResetAbsDist(page=self, page_index=i)
                 continue
 
             if re.search('^ *NEUTRALIZADO DE ', full_line):
@@ -302,48 +334,62 @@ def split_groups(lines):
 def _parse_pages(pages):
     for p in pages:
         if p.number.startswith('A'):
+            # A1, A2, A3: instruction pages
             continue
         for i in p.parse_sheet():
             dbg('sheet item: %r', i)
-            yield p,i
+            yield i
 
 def msec_to_mmin(v):
     return v*60
 
 def parse_pages(opts, pages):
     prev_time = 0
-    prev_abs = 0
+    prev_dist = 0
 
-    for p,(i,cur_relative,cur_time,cur_abs) in _parse_pages(pages):
-        if cur_time is None:
-            # None means there's no time info
-            cur_time = prev_time
+    cur_speed = None
 
-        # cur_abs == 0 means it was just reset
-        if cur_abs <> 0 and cur_abs <> prev_abs+cur_relative:
-            logger.error("cur_abs doesn't match prev_abs + cur_relative (%d <> %d)" % (cur_abs, prev_abs+cur_relative))
+    post_neutro = False
+    #for p,(i,cur_relative,cur_time,cur_abs) in _parse_pages(pages):
+    for item in _parse_pages(pages):
+        if isinstance(item, Referencia):
+            # cur_abs == 0 means it was just reset
+            if item.abs_dist <> prev_dist + item.rel_dist:
+                logger.error("Distance doesn't match prev_abs + rel_dist (%d <> %d)" % (item.abs_dist, prev_dist+item.rel_dist))
 
-        t_delta = cur_time-prev_time
-        assert t_delta >= 0
-        if t_delta == 0:
-            assert cur_relative == 0
+            t_delta = item.abs_time-prev_time
+            assert t_delta >= 0
+            assert (t_delta > 0) or (prev_time == 0) or (post_neutro)
 
-        if t_delta > 0:
-            min_speed = msec_to_mmin((cur_relative-0.5)/(t_delta+0.5))
-            max_speed = msec_to_mmin((cur_relative+0.5)/(t_delta-0.5))
-            speed = msec_to_mmin(float(cur_relative)/t_delta)
+            assert item.rel_dist >= 0
+            assert (item.rel_dist > 0) or (prev_dist == 0)
 
-        if cur_relative > 0 and t_delta > 0:
-            note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
-            if CUR_VEL < min_speed or CUR_VEL > max_speed:
-                note += ' *** DIFERENTE DO TRECHO'
-            p.add_sheet_sidenote(i-2, note)
+            if t_delta > 0:
+                min_speed = msec_to_mmin((item.rel_dist-0.5)/(t_delta+0.5))
+                max_speed = msec_to_mmin((item.rel_dist+0.5)/(t_delta-0.5))
+                speed = msec_to_mmin(float(item.rel_dist)/t_delta)
 
-        if cur_relative > 0:
-            p.add_sheet_sidenote(i-1, 'passos: %.1f' % (float(cur_relative)/PASSO))
+                note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
+                if cur_speed < min_speed or cur_speed > max_speed:
+                    note += ' *** DIFERENTE DO TRECHO'
+                item.page.add_sheet_sidenote(item.page_index-2, note)
 
-        prev_abs = cur_abs
-        prev_time = cur_time
+            item.page.add_sheet_sidenote(item.page_index-1, 'passos: %.1f' % (float(item.rel_dist)/PASSO))
+
+            post_neutro = False
+            prev_dist = item.abs_dist
+            prev_time = item.abs_time
+        elif isinstance(item, SpeedChange):
+            steps_min = float(item.speed)/PASSO
+            item.page.add_sheet_sidenote(item.page_index, '%.1f passos/min (%.1f BPM)' % (steps_min, steps_min*2))
+
+            cur_speed = item.speed
+        elif isinstance(item, ResetAbsDist):
+            prev_dist = 0
+        elif isinstance(item, Neutro):
+            post_neutro = True
+
+        prev_item = item
 
 
 def main(argv):
@@ -355,8 +401,10 @@ def main(argv):
     opts,args = parser.parse_args(argv)
     fname = args[0]
 
+    loglevel = logging.ERROR
     if opts.debug:
-        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+        loglevel = logging.DEBUG
+    logging.basicConfig(stream=sys.stderr, level=loglevel)
 
     proc = subprocess.Popen(['pdftotext', '-layout', fname, '-'], stdout=subprocess.PIPE)
     lines = proc.stdout.readlines()
