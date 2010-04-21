@@ -25,7 +25,7 @@
 
 
 
-import sys, subprocess, re
+import sys, subprocess, re, optparse
 
 import logging
 logger = logging.getLogger('trilhape.planilha')
@@ -234,7 +234,7 @@ class Page:
                 raise Exception("unexpected line: %r" % (l))
 
 
-    def show(self):
+    def show(self, opts):
         pr('+%s+' % ('-'*self.width))
         for i,l in enumerate(self.lines):
             notes = ''
@@ -310,7 +310,7 @@ def _parse_pages(pages):
 def msec_to_mmin(v):
     return v*60
 
-def parse_pages(pages):
+def parse_pages(opts, pages):
     prev_time = 0
     prev_abs = 0
 
@@ -347,9 +347,16 @@ def parse_pages(pages):
 
 
 def main(argv):
-    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+    parser = optparse.OptionParser()
+    #parser.add_option('-P', help="Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
+    #parser.add_option('-p', help="Calcular parciais", action='store_true', dest='partial_calc')
+    parser.add_option('-D', help="Mostrar mensagens de debug", action='store_true', dest='debug')
 
-    fname = argv[0]
+    opts,args = parser.parse_args(argv)
+    fname = args[0]
+
+    if opts.debug:
+        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
     proc = subprocess.Popen(['pdftotext', '-layout', fname, '-'], stdout=subprocess.PIPE)
     lines = proc.stdout.readlines()
@@ -371,9 +378,9 @@ def main(argv):
         for p in g.pages:
             pages.append(p)
 
-    parse_pages(pages)
+    parse_pages(opts, pages)
     for p in pages:
-        p.show()
+        p.show(opts)
 
 
 
