@@ -424,6 +424,11 @@ class CircuitoState:
         self.last_ref = None
         self.last_ref_index = 0
 
+    @property
+    def abs_time_str(self):
+        """Formatted abs_time"""
+        return format_time(self.abs_time)
+
     def copy(self):
         return CircuitoState(self)
 
@@ -634,7 +639,7 @@ def main(argv):
         if isinstance(item, NovoTrecho):
             print 'TRECHO %s  %d m/s' % (item.number, item.speed)
         if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
-            print '%-5s %s %5.1f %5d' % (item.ref_id, format_time(state.abs_time), item.rel_passos, item.rel_dist)
+            print '%-5s %s %5.1f %5d' % (item.ref_id, state.abs_time_str, item.rel_passos, item.rel_dist)
         #print repr(state.__dict__),repr(item)
 
     if opts.show_pages:
