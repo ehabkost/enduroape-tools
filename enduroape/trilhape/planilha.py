@@ -214,7 +214,7 @@ class Page:
 
         l = match(u'^ *(Distância) +(Referência) +(Observações) *$')
         if l is None:
-            raise Exception("Cabeçalho da tabela nao encontrado, pag. %s" % (self.number))
+            raise Exception("Cabecalho da tabela nao encontrado, pag. %r" % (self.number))
         m,line = l
         skip_blank()
 
@@ -327,7 +327,7 @@ class Page:
 
             m = re.search('^ *$', l)
             if not m:
-                raise Exception("unexpected line (%d): %r" % (i, l))
+                raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
 
         r = check_referencia()
         if r: yield r
@@ -384,7 +384,7 @@ def split_groups(lines):
 
         letter = matches[0].group(1)
         pag = int(matches[0].group(2))
-        dbg('%r %r', letter, pag)
+        dbg('letter: %r. pag: %r', letter, pag)
         dbg('last: %r %r', lastletter, lastpage)
         if (letter <> lastletter and pag == 1) or \
            (letter == lastletter and pag == lastpage+1):
