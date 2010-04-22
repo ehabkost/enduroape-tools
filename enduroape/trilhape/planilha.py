@@ -678,9 +678,14 @@ def format_html(items):
             else:
                 classes.append('odd_row')
 
+            if isinstance(item, Neutro):
+                spassos = 'N'
+            else:
+                spassos = '%.1f' % (item.rel_passos)
+
             classes = ' '.join(classes)
             print '<tr class="%s">' % (classes)
-            print '<td class="ref_id">%s</td><td class="tempo">%s</td><td class="passos">%.1f</td>' % (item.ref_id, state.abs_time_str, item.rel_passos)
+            print '<td class="ref_id">%s</td><td class="tempo">%s</td><td class="passos">%s</td>' % (item.ref_id, state.abs_time_str, spassos)
             print '</tr>'
     print '</table>'
 
