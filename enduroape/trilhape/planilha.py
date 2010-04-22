@@ -606,6 +606,7 @@ def main(argv):
     parser.add_option('-P', help="Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
     parser.add_option('-p', help="Calcular parciais", action='store_true', dest='parciais')
     parser.add_option('-D', help="Mostrar mensagens de debug", action='store_true', dest='debug')
+    parser.add_option('--html', help="Formata saída em HTML", action='store_true', dest='html')
 
     opts,args = parser.parse_args(argv)
     fname = args[0]
@@ -635,11 +636,45 @@ def main(argv):
         for p in g.pages:
             pages.append(p)
 
+    if opts.html:
+        print '''
+        <style>
+            body {
+               font-size: 133%;
+               font-family: monospace;
+               font-weight: normal;
+               width: 220px;
+            }
+
+            div {
+               border-top: 1px solid #CCCCCC;
+            }
+
+            .odd {
+               background-color: #F0F0F0;
+            }
+
+            .even {
+               background-color: #FFFFFF;
+            }
+        </style>
+              '''
     for state,item in parse_pages(opts, pages):
         if isinstance(item, NovoTrecho):
-            print 'TRECHO %s  %d m/s' % (item.number, item.speed)
+            if opts.html:
+                print '<h3>TRECHO <strong>%s</strong> (%d m/s)</h3>' % (item.number, item.speed)
+            else:
+                print 'TRECHO %s - %d m/s' % (item.number, item.speed)
         if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
-            print '%-5s %s %5.1f %5d' % (item.ref_id, state.abs_time_str, item.rel_passos, item.rel_dist)
+            if opts.html and isinstance(item, Referencia):
+                if item.ref_index%2==0:
+                    print '<div class=even>'
+                else:
+                    print '<div class=odd>'
+            if opts.html:
+                print '<p>%-5s - <strong>%s</strong> <u>%5.1f</u></p>' % (item.ref_id, state.abs_time_str, item.rel_passos)
+            else:
+                print '%-5s %s %5.1f %5d' % (item.ref_id, state.abs_time_str, item.rel_passos, item.rel_dist)
         #print repr(state.__dict__),repr(item)
 
     if opts.show_pages:
