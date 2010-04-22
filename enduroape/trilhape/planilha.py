@@ -611,20 +611,27 @@ def format_html(items):
            width: 220px;
         }
 
-        div {
-           border-top: 1px solid #CCCCCC;
+        td {
+        }
+
+        table {
+            border-collapse: collapse;
         }
 
         .referencia {
+           border-top: 1px solid #CCCCCC;
+        }
+
+        .odd_ref {
            background-color: #F0F0F0;
         }
 
-        .parcial {
-           background-color: #ffffff;
+        .passos {
+            text-align: right;
         }
 
-        .referencia,.parcial .ref_id,.passos {
-            text-align: right;
+        .ref_id {
+            text-align: left;
         }
 
 
@@ -640,12 +647,19 @@ def format_html(items):
             row += 1
 
             classes=[]
-            if isinstance(item, Referencia):
-                classes.append('referencia')
-                if item.ref_index%2==0:
+            if isinstance(item, Referencia) or isinstance(item, Parcial):
+                if isinstance(item, Referencia):
+                    ref = item
+                elif isinstance(item, Parcial):
+                    ref = item.ref_before
+
+                if ref.ref_index%2==0:
                     classes.append("even_ref")
                 else:
                     classes.append("odd_ref")
+
+            if isinstance(item, Referencia):
+                classes.append('referencia')
             elif isinstance(item, Parcial):
                 classes.append("parcial")
             elif isinstance(item, Neutro):
@@ -658,7 +672,6 @@ def format_html(items):
 
             classes = ' '.join(classes)
             print '<tr class="%s">' % (classes)
-
             print '<td class="ref_id">%s</td><td class="tempo">%s</td><td class="passos">%.1f</td>' % (item.ref_id, state.abs_time_str, item.rel_passos)
             print '</tr>'
     print '</table>'
