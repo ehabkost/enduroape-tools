@@ -477,10 +477,10 @@ class CircuitoState:
         # algoritmo:
         # - gera 1 parciais de 5, 10, 20, e 30 passos para
         #   pegar 'feeling' da velocidade
-        # - gera parciais de 10 passos até chegar a 30 passos do final
+        # - gera parciais de MAX_PARCIAL passos até chegar a 30 passos do final
         # - parciais a 30,20,10 e 5 passos do final
 
-        MAX_PARCIAL = 10
+        MAX_PARCIAL = 20
 
         if passos < 10:
             return
