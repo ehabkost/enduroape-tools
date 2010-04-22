@@ -108,26 +108,43 @@ class PageItem(CircuitoItem):
     def add_sidenote(self, msg, offset=0):
         self.page.add_sheet_sidenote(self.sheet_line+offset, msg)
 
+# propriedades comuns:
+# - sheet_abs_dist - distância absoluta mostrada na planilha (não confiável)
+# - rel_dist: distância relativa desde o item anterior
+# - abs_time: tempo absoluto
+# - ref_index: número (inteiro) da referência (e.g. 1, 2, 3, 42), válido
+#   apenas para referências reais (Referencia ou Neutro)
+# - ref_id: identificação (string) da referência (e.g. "1", "2", "2.1", "2.2").
+#   válido para referências da planilha e parciais (Referencia, Neutro, Parcial)
+# - rel_passos: rel_dist convertido para passos
+
 class Referencia(PageItem):
     """Referência
 
-    properties: abs_dist, rel_dist, abs_time, rel_passos, ref_number
+    properties: abs_dist, rel_dist, abs_time, rel_passos, ref_index, ref_id
     """
-    pass
+    @property
+    def ref_id(self):
+        return str(self.ref_index)
 
 class Parcial(CircuitoItem):
     """Uma parcial
 
-    properties: abs_dist, rel_dist, abs_time, rel_passos, ref_number
+    properties: abs_dist, rel_dist, abs_time, rel_passos, ref_id
     """
-    pass
+    @property
+    def ref_id(self):
+        return '%d.%d' % (self.ref_before.ref_index, self.parcial_index)
 
 class Neutro(PageItem):
     """Neutro
 
-    properties: abs_time, rel_dist(==0), ref_number
+    properties: abs_time, rel_dist(==0), ref_index, ref_id
     """
     pass
+    @property
+    def ref_id(self):
+        return str(self.ref_index)
 
 class NovoTrecho(PageItem):
     """Request to reset absolute distance counter
@@ -225,7 +242,7 @@ class Page:
             if state.cur_relative is not None and state.cur_time is not None and state.cur_abs is not None:
                 dbg("got new reference")
                 # i-1 because the item ended on the previous line
-                r = Referencia(self, state.last_ref_data_line, rel_dist=state.cur_relative, abs_time=state.cur_time, abs_dist=state.cur_abs)
+                r = Referencia(self, state.last_ref_data_line, rel_dist=state.cur_relative, abs_time=state.cur_time, sheet_abs_dist=state.cur_abs)
                 state.cur_time = None
                 state.cur_relative = None
                 state.cur_abs = None
@@ -405,7 +422,7 @@ class CircuitoState:
 
         # last_ref: última Referencia ou Neutro
         self.last_ref = None
-        self.last_ref_num = 0
+        self.last_ref_index = 0
 
     def copy(self):
         return CircuitoState(self)
@@ -432,7 +449,7 @@ class CircuitoState:
         self.add_time(t_delta)
         return t_delta
 
-    def _new_ref(self, ref, ref_number):
+    def _new_ref(self, ref):
         # throw away the previous reference so it is not copied
         self.previous_state = None
         # make a copy of current state and store it
@@ -440,17 +457,16 @@ class CircuitoState:
 
         t_delta = self.update_abs_time(ref.abs_time)
         ref.rel_time = t_delta
-        ref.ref_number = ref_number
 
         ref.rel_passos = ref.rel_dist/PASSO
 
         self.last_ref = ref
 
     def new_ref(self, ref):
-        self.last_ref_num += 1
-        num = str(self.last_ref_num)
-        self._new_ref(ref, num)
-        ref.add_sidenote("Referencia: %s" % (ref.ref_number), -3)
+        self.last_ref_index += 1
+        ref.ref_index = self.last_ref_index
+        self._new_ref(ref)
+        ref.add_sidenote("Referencia: %s" % (ref.ref_id), -3)
 
     def posicoes_parciais(self, passos):
         # algoritmo:
@@ -503,11 +519,10 @@ class CircuitoState:
             parcial.ref_before = prev.last_ref
             parcial.ref_after = self.last_ref
             parcial.parcial_index = i+1
-            number = '%s.%d' % (prev.last_ref.ref_number, parcial.parcial_index)
 
             # copy current state and update it according to the partial data
             stcopy = prev.copy()
-            stcopy._new_ref(parcial, number)
+            stcopy._new_ref(parcial)
             yield stcopy,parcial
 
 def parse_pages(opts, pages):
@@ -532,15 +547,16 @@ def parse_pages(opts, pages):
             st.add_dist(item.rel_dist)
 
             # a distância absoluta é resetada em pontos aleatórios:
-            if item.abs_dist == item.rel_dist:
-                item.add_sidenote('*** abs_dist reset')
-                st.sheet_abs_dist = 0
 
             # cur_abs == 0 means it was just reset
-            if item.abs_dist <> st.sheet_abs_dist + item.rel_dist:
-                logger.error("ref %d: Distance doesn't match prev_abs + rel_dist (%d <> %d+%d)" % (st.last_ref_num, item.abs_dist, st.sheet_abs_dist, item.rel_dist))
+            if item.sheet_abs_dist <> st.sheet_abs_dist + item.rel_dist:
+                if item.sheet_abs_dist == item.rel_dist:
+                    item.add_sidenote('*** abs_dist reset')
+                    st.abs_dist = 0
+                else:
+                    logger.error("ref %s: Distance doesn't match prev_abs + rel_dist (%d <> %d+%d)" % (item.ref_id, item.sheet_abs_dist, st.sheet_abs_dist, item.rel_dist))
 
-            st.sheet_abs_dist = item.abs_dist
+            st.sheet_abs_dist = item.sheet_abs_dist
 
             assert item.rel_dist >= 0
             assert (item.rel_dist > 0) or (st.trecho_dist == 0)
@@ -618,7 +634,7 @@ def main(argv):
         if isinstance(item, NovoTrecho):
             print 'TRECHO %s  %d m/s' % (item.number, item.speed)
         if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
-            print '%-5s %s %5.1f %5d' % (item.ref_number, format_time(state.abs_time), item.rel_passos, item.rel_dist)
+            print '%-5s %s %5.1f %5d' % (item.ref_id, format_time(state.abs_time), item.rel_passos, item.rel_dist)
         #print repr(state.__dict__),repr(item)
 
     if opts.show_pages:
