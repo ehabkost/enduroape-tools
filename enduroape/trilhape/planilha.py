@@ -325,6 +325,10 @@ class Page:
             if re.search(u'PINUS COM FITAS', full_line):
                 continue
 
+            if re.search(u'^ *COMO CHEGAR NO HOTEL', full_line):
+                # fim da planilha (04/2010)
+                break
+
             m = re.search('^ *$', l)
             if not m:
                 raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
@@ -374,11 +378,10 @@ def split_groups(lines):
         cur.append(l)
         matches = list(re_pag.finditer(l))
         texts = [m.group(0) for m in matches]
-        if matches:
-            dbg('%r', texts)
-
-        if len(matches) < 2:
+        if not matches:
             continue
+
+        dbg('%r', texts)
 
         if len(matches) > 3:
             raise Exception('unexpected matches: %r' % (texts))
