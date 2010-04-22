@@ -365,6 +365,7 @@ def split_groups(lines):
     lastletter = None
     lastpage = 0
     for l in lines:
+        dbg("line: %r", l)
         # expect to find a form feed char after each page:
         if len(cur) == 0 and len(groups) > 0:
             assert l.startswith(FORMFEED)
