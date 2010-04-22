@@ -608,6 +608,8 @@ def main(argv):
             pages.append(p)
 
     for state,item in parse_pages(opts, pages):
+        if isinstance(item, NovoTrecho):
+            print 'TRECHO %s  %d m/s' % (item.number, item.speed)
         if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
             print '%-5s %s %5.1f %5d' % (item.ref_number, format_time(state.abs_time), item.rel_passos, item.rel_dist)
         #print repr(state.__dict__),repr(item)
