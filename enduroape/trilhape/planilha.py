@@ -499,12 +499,16 @@ class CircuitoState:
             abs_time = prev.abs_time+partial_time
             abs_dist = prev.abs_dist+partial_dist
 
-            item = Parcial(abs_time=abs_time, abs_dist=abs_dist, rel_time=partial_time, rel_dist=partial_dist)
+            parcial = Parcial(abs_time=abs_time, abs_dist=abs_dist, rel_time=partial_time, rel_dist=partial_dist)
+            parcial.ref_before = prev.last_ref
+            parcial.ref_after = self.last_ref
+            parcial.parcial_index = i+1
+            number = '%s.%d' % (prev.last_ref.ref_number, parcial.parcial_index)
+
             # copy current state and update it according to the partial data
             stcopy = prev.copy()
-            number = '%s.%d' % (prev.last_ref.ref_number, i+1)
-            stcopy._new_ref(item, number)
-            yield stcopy,item
+            stcopy._new_ref(parcial, number)
+            yield stcopy,parcial
 
 def parse_pages(opts, pages):
     """Generate state,item tuples
