@@ -67,6 +67,7 @@ class Group:
             return True
 
         for l in self.lines:
+            #dbg("l[%d]: %r", end, l[end])
             if l[end] <> ' ':
                 return False
         return True
@@ -75,14 +76,16 @@ class Group:
         previous = 0
         for p in self.pages:
             ok = False
-            for n in (5,6,4,7):
+            for n in (5,6,4,7,3,8,2,9):
                 end = p.min_right+n
                 if self.can_divide(end):
                     ok = True
+                    break
 
             if not ok:
                 raise Exception("I don't know where is the right margin of page %s (%d?)" % (p.number, end))
 
+            dbg("page columns: %d:%d", previous, end)
             p.left = previous
             p.right = end
             previous = end
@@ -189,6 +192,7 @@ class Page:
         self.sheet_lines = self.lines[:]
 
         def match(pat):
+            dbg("match: %r. next line: %r", pat, self.sheet_lines[0])
             m = re.search(pat, self.sheet_lines[0])
             if m:
                 dbg('match: %r %r', m, self.sheet_lines[0])
