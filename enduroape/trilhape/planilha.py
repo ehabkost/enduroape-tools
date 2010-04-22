@@ -729,7 +729,7 @@ def main(argv):
         loglevel = logging.DEBUG
     logging.basicConfig(stream=sys.stderr, level=loglevel)
 
-    proc = subprocess.Popen(['pdftotext', '-layout', fname, '-'], stdout=subprocess.PIPE)
+    proc = subprocess.Popen(['pdftotext', '-enc', 'UTF-8', '-layout', fname, '-'], stdout=subprocess.PIPE)
     lines = proc.stdout.readlines()
     proc.wait()
     if proc.returncode <> 0:
