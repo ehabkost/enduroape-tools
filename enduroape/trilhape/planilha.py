@@ -316,7 +316,7 @@ class Page:
                 state.wait_neutro = True
                 continue
 
-            if re.search(u'^ *QUANDO +SEU +CRONÔMETRO', full_line):
+            if re.search(u' *QUANDO +SEU +CRONÔMETRO', full_line, re.UNICODE):
                 continue
 
             if re.search(u'DESLOCAMENTO', full_line):
