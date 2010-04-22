@@ -611,6 +611,18 @@ def format_html(items):
            font-weight: normal;
         }
 
+        .tempo {
+           font-weight: bold;
+        }
+
+        .referencia .passos, .parcial .passos {
+            text-decoration: underline;
+        }
+
+        .neutro .passos {
+            font-weight: bold;
+        }
+
         td {
         }
 
