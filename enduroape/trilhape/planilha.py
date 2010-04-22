@@ -477,9 +477,10 @@ class CircuitoState:
         # algoritmo:
         # - gera 1 parciais de 5, 10, 20, e 30 passos para
         #   pegar 'feeling' da velocidade
-        # - gera parciais de 30 passos até chegar a 30 passos do final
-        # - gera 3 parciais de 10 passos até chegar a 10 passos do final
-        # - parcial a 5 passos do final
+        # - gera parciais de 10 passos até chegar a 30 passos do final
+        # - parciais a 30,20,10 e 5 passos do final
+
+        MAX_PARCIAL = 10
 
         if passos < 10:
             return
@@ -491,11 +492,11 @@ class CircuitoState:
             yield p
             lp = p
 
-        p = 60
+        p = lp+MAX_PARCIAL
         while p < passos-30:
             yield p
             lp = p
-            p += 30
+            p += MAX_PARCIAL
 
         # arredonda os trechos finais para múltiplos de 5
         redondo = int((passos+2.5)/5)*5
