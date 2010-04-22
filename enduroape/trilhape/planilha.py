@@ -623,7 +623,7 @@ def format_html(items):
            background-color: #ffffff;
         }
 
-        .referencia td {
+        .referencia,.parcial .ref_id,.passos {
             text-align: right;
         }
 
