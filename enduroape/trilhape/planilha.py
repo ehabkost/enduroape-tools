@@ -627,7 +627,7 @@ def format_html(items):
     for state,item in items:
         if isinstance(item, NovoTrecho):
             print '<h3>TRECHO <strong>%s</strong> (%d m/s)</h3>' % (item.number, item.speed)
-        if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
+        elif isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
             if isinstance(item, Referencia):
                 if item.ref_index%2==0:
                     print '<div class=even>'
@@ -639,7 +639,7 @@ def format_text(items):
     for state,item in items:
         if isinstance(item, NovoTrecho):
             print 'TRECHO %s - %d m/s' % (item.number, item.speed)
-        if isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
+        elif isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
             print '%-5s %s %5.1f %5d' % (item.ref_id, state.abs_time_str, item.rel_passos, item.rel_dist)
  
 def main(argv):
