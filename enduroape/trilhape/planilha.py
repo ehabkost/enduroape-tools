@@ -606,9 +606,8 @@ def format_html(items):
     <style>
         body {
            font-size: 133%;
-           font-family: monospace;
+           font-family: serif;
            font-weight: normal;
-           width: 220px;
         }
 
         td {
@@ -632,6 +631,15 @@ def format_html(items):
 
         .ref_id {
             text-align: left;
+        }
+
+        .trecho td {
+            padding-top: 3ex;
+        }
+
+        .neutro {
+            border-bottom: 1px solid black;
+            border-top: 1px dashed black;
         }
 
 
