@@ -476,10 +476,13 @@ class CircuitoState:
             lp = p
             p += 30
 
+        # arredonda os trechos finais para múltiplos de 5
+        redondo = int((passos+2.5)/5)*5
+
         for mp in (30,20,10,5):
-            p = passos-mp
+            p = redondo-mp
             dbg("ending: %s", p)
-            if p > lp+(mp/2):
+            if p > lp+(mp/2) and p < passos:
                 yield p
                 lp = p
 
@@ -490,7 +493,7 @@ class CircuitoState:
         rel_time = self.abs_time-prev.abs_time
         passos = float(rel_dist)/PASSO
 
-        for i,p in enumerate(self.posicoes_parciais(int(passos))):
+        for i,p in enumerate(self.posicoes_parciais(passos)):
             partial_dist = p*PASSO
             partial_time = rel_time*(float(partial_dist)/rel_dist)
             abs_time = prev.abs_time+partial_time
