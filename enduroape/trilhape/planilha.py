@@ -615,25 +615,53 @@ def format_html(items):
            border-top: 1px solid #CCCCCC;
         }
 
-        .odd {
+        .referencia {
            background-color: #F0F0F0;
         }
 
-        .even {
-           background-color: #FFFFFF;
+        .parcial {
+           background-color: #ffffff;
         }
+
+        .referencia td {
+            text-align: right;
+        }
+
+
     </style>
           '''
+    print '<table>'
+    colunas = 3
+    row = 0
     for state,item in items:
         if isinstance(item, NovoTrecho):
-            print '<h3>TRECHO <strong>%s</strong> (%d m/s)</h3>' % (item.number, item.speed)
+            print '<tr class="trecho"><td colspan="%d">TRECHO <strong>%s</strong> (%d m/s)</td></tr>' % (colunas, item.number, item.speed)
         elif isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
+            row += 1
+
+            classes=[]
             if isinstance(item, Referencia):
+                classes.append('referencia')
                 if item.ref_index%2==0:
-                    print '<div class=even>'
+                    classes.append("even_ref")
                 else:
-                    print '<div class=odd>'
-            print '<p>%-5s - <strong>%s</strong> <u>%5.1f</u></p>' % (item.ref_id, state.abs_time_str, item.rel_passos)
+                    classes.append("odd_ref")
+            elif isinstance(item, Parcial):
+                classes.append("parcial")
+            elif isinstance(item, Neutro):
+                classes.append("neutro")
+
+            if row%2==0:
+                classes.append('even_row')
+            else:
+                classes.append('odd_row')
+
+            classes = ' '.join(classes)
+            print '<tr class="%s">' % (classes)
+
+            print '<td class="ref_id">%s</td><td class="tempo">%s</td><td class="passos">%.1f</td>' % (item.ref_id, state.abs_time_str, item.rel_passos)
+            print '</tr>'
+    print '</table>'
 
 def format_text(items):
     for state,item in items:
