@@ -101,11 +101,11 @@ class CircuitoItem:
 
     @property
     def type(self):
-        return self.__class__.__name__
+        return self.__class__.__name__.lower()
 
     def is_a(self, t):
         """Shortcut for checking the item class"""
-        return self.type == str(t)
+        return self.type.lower() == str(t).lower()
 
 class PageItem(CircuitoItem):
     """Um item na planilha"""

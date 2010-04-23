@@ -1,0 +1,97 @@
+<style>
+body {
+   font-size: 133%;
+   font-family: serif;
+   font-weight: normal;
+}
+
+.tempo {
+   font-weight: bold;
+}
+
+.referencia .passos, .parcial .passos {
+    text-decoration: underline;
+}
+
+.neutro .passos {
+    font-weight: bold;
+}
+
+td {
+}
+
+table {
+    border-collapse: collapse;
+}
+
+.referencia {
+   border-top: 1px solid #CCCCCC;
+}
+
+.odd_ref {
+   background-color: #F0F0F0;
+}
+
+.passos {
+    text-align: right;
+}
+
+.ref_id {
+    text-align: left;
+}
+
+.trecho td {
+    padding-top: 3ex;
+}
+
+.neutro {
+    border-bottom: 1px solid black;
+    border-top: 1px dashed black;
+}
+
+
+</style>
+<table>
+
+#def line_classes(i, row):
+    #if i.is_a('Referencia') or i.is_a('Parcial')
+        #if i.is_a('Referencia')
+            #set $ref = i
+        #else
+            #set $ref = i.ref_before
+        #end if
+        #if $ref.ref_index%2==0
+            #echo "even_ref "
+        #else
+            #echo "odd_ref "
+        #end if
+    #end if
+    #if row%2==0:
+        #echo "even_row "
+    #else
+        #echo "odd_row "
+    #end if
+    #echo $i.type
+#end def
+
+#set $row = 0
+#for $s,$i in $circuito:
+    #if $i.is_a('NovoTrecho')
+        <tr class="trecho"><td colspan="3">TRECHO <span class="num_trecho">$i.number</span> ($i.speed m/s)</td></tr>
+    #elif $i.is_a('Referencia') or $i.is_a('Parcial') or $i.is_a('Neutro'):
+        #set $row += 1
+        #if $i.is_a('Neutro'):
+            #set $spassos = 'N'
+        #else
+            #set $spassos = '%.1f' % ($i.rel_passos)
+        #end if
+        <tr class="$line_classes($i, $row)">
+            <td class="ref_id">$i.ref_id</td>
+            <td class="tempo">$s.abs_time_str</td>
+            <td class="passos">$spassos</td>
+        </tr>
+    #end if
+#end for
+</table>
+
+## vim: ts=4 sw=4 et
