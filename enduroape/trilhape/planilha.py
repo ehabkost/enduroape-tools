@@ -26,6 +26,7 @@
 
 
 import sys, subprocess, re, optparse
+from Cheetah.Template import Template
 
 import logging
 logger = logging.getLogger('trilhape.planilha')
@@ -100,11 +101,11 @@ class CircuitoItem:
 
     @property
     def type(self):
-        return str(self.__class__)
+        return self.__class__.__name__
 
-    def is_a(self, typename):
+    def is_a(self, t):
         """Shortcut for checking the item class"""
-        return self.type() == typename
+        return self.type == str(t)
 
 class PageItem(CircuitoItem):
     """Um item na planilha"""
@@ -726,15 +727,36 @@ def format_text(items):
             print 'TRECHO %s - %d m/s' % (item.number, item.speed)
         elif isinstance(item, Referencia) or isinstance(item, Parcial) or isinstance(item, Neutro):
             print '%-5s %s %5.1f %5d' % (item.ref_id, state.abs_time_str, item.rel_passos, item.rel_dist)
- 
+
+class TemplateNamespace:
+    def __init__(self, opts, items):
+        self._opts = opts
+        self._items = items
+
+    def its(self, type=None):
+        for s,i in self._items:
+            if type and not i.is_a(type):
+                continue
+            yield s,i
+
+def format_template(opts, items):
+    ns = TemplateNamespace(opts, items)
+    t = Template(file=opts.template_file, searchList=[ns])
+    sys.stdout.write(t.respond())
+
 def main(argv):
     parser = optparse.OptionParser()
     parser.add_option('-P', help=u"Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
     parser.add_option('-p', help=u"Calcular parciais", action='store_true', dest='parciais')
     parser.add_option('-D', help=u"Mostrar mensagens de debug", action='store_true', dest='debug')
     parser.add_option('--html', help=u"Formata saída em HTML", action='store_true', dest='html')
+    parser.add_option('-t', help=u"Usar arquivo de template Cheetah", action='store', dest='template_file')
 
     opts,args = parser.parse_args(argv)
+
+    if len(args) <> 1:
+        parser.error("Especifique o caminho do arquivo PDF com a planilha")
+
     fname = args[0]
 
     loglevel = logging.ERROR
@@ -766,6 +788,8 @@ def main(argv):
 
     if opts.html:
         format_html(items)
+    elif opts.template_file:
+        format_template(opts, items)
     else:
         format_text(items)
 

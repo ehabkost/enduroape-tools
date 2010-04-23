@@ -1,0 +1,7 @@
+#for $s,$i in $its:
+    #if $i.is_a('NovoTrecho')
+        #echo 'TRECHO %d - %d m/s\n' % ($i.number, $i.speed)
+    #elif $i.is_a('Referencia') or $i.is_a('Parcial') or $i.is_a('Neutro')
+        #echo '%-5s %s %5.1f %5d\n' % ($i.ref_id, $s.abs_time_str, $i.rel_passos, $i.rel_dist)
+    #end if
+#end for
