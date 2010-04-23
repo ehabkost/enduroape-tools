@@ -98,6 +98,14 @@ class CircuitoItem:
     def __init__(self, **kwargs):
         self.__dict__.update(**kwargs)
 
+    @property
+    def type(self):
+        return str(self.__class__)
+
+    def is_a(self, typename):
+        """Shortcut for checking the item class"""
+        return self.type() == typename
+
 class PageItem(CircuitoItem):
     """Um item na planilha"""
     def __init__(self, page, sheet_line, **kwargs):
