@@ -150,7 +150,7 @@ class Neutro(PageItem):
         return str(self.ref_index)
 
 class NovoTrecho(PageItem):
-    """Request to reset absolute distance counter
+    """Novo trecho do circuito
 
     properties: number, speed
     """
