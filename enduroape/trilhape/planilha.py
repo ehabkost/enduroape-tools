@@ -721,10 +721,10 @@ def format_text(items):
  
 def main(argv):
     parser = optparse.OptionParser()
-    parser.add_option('-P', help="Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
-    parser.add_option('-p', help="Calcular parciais", action='store_true', dest='parciais')
-    parser.add_option('-D', help="Mostrar mensagens de debug", action='store_true', dest='debug')
-    parser.add_option('--html', help="Formata saída em HTML", action='store_true', dest='html')
+    parser.add_option('-P', help=u"Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
+    parser.add_option('-p', help=u"Calcular parciais", action='store_true', dest='parciais')
+    parser.add_option('-D', help=u"Mostrar mensagens de debug", action='store_true', dest='debug')
+    parser.add_option('--html', help=u"Formata saída em HTML", action='store_true', dest='html')
 
     opts,args = parser.parse_args(argv)
     fname = args[0]
