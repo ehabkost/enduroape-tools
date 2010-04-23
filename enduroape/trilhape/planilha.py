@@ -580,10 +580,10 @@ def parse_pages(opts, pages):
                 max_speed = msec_to_mmin((item.rel_dist+0.5)/(item.rel_time-0.5))
                 speed = msec_to_mmin(float(item.rel_dist)/item.rel_time)
 
-                note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
                 if st.speed < min_speed or st.speed > max_speed:
+                    note = 'velocidade: %.1f m/min (%.1f ~ %.1f)' % (speed, min_speed, max_speed)
                     note += ' *** DIFERENTE DO TRECHO'
-                item.add_sidenote(note, -2)
+                    item.add_sidenote(note, -2)
 
             item.add_sidenote('passos: %.1f' % (float(item.rel_dist)/PASSO), -1)
 
