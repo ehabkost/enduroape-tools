@@ -733,7 +733,7 @@ class TemplateNamespace:
         self._opts = opts
         self._items = items
 
-    def its(self, type=None):
+    def circuito(self, type=None):
         for s,i in self._items:
             if type and not i.is_a(type):
                 continue
