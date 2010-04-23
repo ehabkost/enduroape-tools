@@ -706,7 +706,9 @@ def format_html(items):
 
             classes = ' '.join(classes)
             print '<tr class="%s">' % (classes)
-            print '<td class="ref_id">%s</td><td class="tempo">%s</td><td class="passos">%s</td>' % (item.ref_id, state.abs_time_str, spassos)
+            print '<td class="ref_id">%s</td>' % (item.ref_id)
+            print '<td class="tempo">%s</td>' % (state.abs_time_str)
+            print '<td class="passos">%s</td>' % (spassos)
             print '</tr>'
     print '</table>'
 
