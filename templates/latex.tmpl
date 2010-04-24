@@ -1,0 +1,92 @@
+#encoding utf-8
+#def line_classes(i, row):
+    #if i.is_a('Referencia') or i.is_a('Parcial')
+        #if i.is_a('Referencia')
+            #set $ref = i
+        #else
+            #set $ref = i.ref_before
+        #end if
+        #if $ref.ref_index%2==0
+            #echo "even_ref "
+        #else
+            #echo "odd_ref "
+        #end if
+    #end if
+    #if row%2==0:
+        #echo "even_row "
+    #else
+        #echo "odd_row "
+    #end if
+    ## o tipo do objeto (referencia, neutro, etc) é classe CSS também
+    #echo $i.type
+#end def
+##
+#set $_cssfile = $getVar('cssfile', 'style.css')
+\documentclass[a4paper,9pt]{article}
+\usepackage{longtable}
+\usepackage{multicol}
+
+\topmargin -4cm
+\headheight 1cm
+\headsep 1cm
+\oddsidemargin -2.4cm
+\evensidemargin -2.4cm
+\textwidth 19.4cm
+\textheight 27cm
+
+\newcommand\T{\rule{0pt}{2.6ex}}
+\newcommand\B{\rule[-1.2ex]{0pt}{0pt}}
+
+\begin{document}
+\begin{multicols}{4}
+
+\footnotesize
+
+\begin{tabular}{|l|crr|}
+
+#set $oldref = -1
+#set $row = 0
+#for $s,$i in $circuito:
+    #if $i.is_a('NovoTrecho')
+	\hline
+	\end{tabular}
+	#if $row > 0
+		\vskip 3mm
+	#end if
+	\begin{tabular}{|l|crr|}
+	\hline
+	\multicolumn{4}{|c|}{\textbf{TRECHO $i.number ($i.speed m/min)}} \T \B \\
+	\hline
+    #elif $i.is_a('Referencia') or $i.is_a('Parcial') or $i.is_a('Neutro'):
+        #set $row += 1
+        #if $i.is_a('Neutro'):
+	    \hline
+            #set $spassos = '{\large \\textbf{N}} \\T \\B'
+        #else
+            #set $spassos = '%i' % ($i.rel_passos)
+            #set $sdist = '%i' % ($i.rel_dist)
+        #end if
+	#set $major = $i.ref_id.split('.')[0]
+	#if $major != $oldref
+	    \hline
+	    #set $oldref = $major
+	#end if
+	#if $major == $i.ref_id
+	    #set $sid = '{\\large \\textbf{%s}} \\T \\B' % ($i.ref_id)
+	    #set $stime = '{\\normalsize \\textbf{%s}}' % ($s.abs_time_str)
+	#else
+	    #set $sid = $i.ref_id
+	    #set $stime = '\\textbf{%s}' % ($s.abs_time_str)
+ 	#end if
+	$sid & $stime & $spassos & $sdist \\
+	#if  $i.is_a('Neutro')
+	    \hline
+	#end if
+    #end if
+#end for
+
+\hline
+\end{tabular}
+\end{multicols}
+\end{document}
+## vim: ts=4 sw=4 et
