@@ -497,6 +497,8 @@ class CircuitoState:
         # - gera parciais de MAX_PARCIAL passos até chegar a 30 passos do final
         # - parciais a 30,20,10 e 5 passos do final
 
+        dbg("posicoes_parciais: %d passos", passos)
+
         MAX_PARCIAL = 20
 
         if passos < 10:
@@ -531,6 +533,8 @@ class CircuitoState:
         rel_dist = self.abs_dist-prev.abs_dist
         rel_time = self.abs_time-prev.abs_time
         passos = float(rel_dist)/PASSO
+
+        dbg("gera_parciais: ref %s", self.last_ref.ref_id)
 
         for i,p in enumerate(self.posicoes_parciais(passos)):
             partial_dist = p*PASSO
@@ -575,7 +579,7 @@ def parse_pages(opts, pages):
             if item.sheet_abs_dist <> st.sheet_abs_dist + item.rel_dist:
                 if item.sheet_abs_dist == item.rel_dist:
                     item.add_sidenote('*** abs_dist reset')
-                    st.abs_dist = 0
+                    st.sheet_abs_dist = 0
                 else:
                     logger.error("ref %s: Distance doesn't match prev_abs + rel_dist (%d <> %d+%d)" % (item.ref_id, item.sheet_abs_dist, st.sheet_abs_dist, item.rel_dist))
 
@@ -616,6 +620,7 @@ def parse_pages(opts, pages):
 
         # copy current state and return it
         s = st.copy()
+        dbg("last_ref: %s. abs_dist: %d", s.last_ref_index, s.abs_dist)
         yield s,item
 
 
