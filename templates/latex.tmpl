@@ -13,6 +13,7 @@
 
 \newcommand\T{\rule{0pt}{2.6ex}}
 \newcommand\B{\rule[-1.2ex]{0pt}{0pt}}
+\setlength{\tabcolsep}{1.1ex}
 
 \begin{document}
 \begin{multicols}{4}
@@ -32,7 +33,7 @@
 	#end if
 	\begin{tabular}{|l|crr|}
 	\hline
-	\multicolumn{4}{|c|}{\textbf{TRECHO $i.number ($i.speed m/min)}} \T \B \\
+	\multicolumn{4}{|c|}{\textbf{TRECHO $i.number (\$v=$i.speed\$)}} \T \B \\
 	\hline
     #elif $i.is_a('Referencia') or $i.is_a('Parcial') or $i.is_a('Neutro'):
         #set $row += 1
