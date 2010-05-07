@@ -3,17 +3,21 @@
 \usepackage{longtable}
 \usepackage{multicol}
 
+\usepackage[table]{xcolor}
+\definecolor{grayed}{HTML}{E0E0E0}
+
 \topmargin -4cm
 \headheight 1cm
 \headsep 1cm
 \oddsidemargin -2.4cm
 \evensidemargin -2.4cm
-\textwidth 19.4cm
+\textwidth 21.5cm
 \textheight 27cm
 
 \newcommand\T{\rule{0pt}{2.6ex}}
 \newcommand\B{\rule[-1.2ex]{0pt}{0pt}}
 \setlength{\tabcolsep}{1.1ex}
+\setlength{\parskip}{0.0in} 
 
 \begin{document}
 \begin{multicols}{4}
@@ -31,6 +35,7 @@
 	#if $row > 0
 		\vskip 3mm
 	#end if
+	\rowcolors{1}{grayed}{white}
 	\begin{tabular}{|l|crr|}
 	\hline
 	\multicolumn{4}{|c|}{\textbf{TRECHO $i.number (\$v=$i.speed\$)}} \T \B \\
