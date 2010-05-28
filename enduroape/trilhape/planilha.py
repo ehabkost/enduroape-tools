@@ -586,7 +586,9 @@ def parse_pages(opts, pages):
             st.sheet_abs_dist = item.sheet_abs_dist
 
             assert item.rel_dist >= 0
-            assert (item.rel_dist > 0) or (st.trecho_dist == 0)
+            if item.rel_dist == 0 and st.trecho_dist <> 0:
+                item.add_sidenote("******** rel_dist reset!")
+                logger.error("ref %s: rel_dist é 0 e não é início de trecho", item.ref_id)
 
             if item.rel_time:
                 min_speed = msec_to_mmin((item.rel_dist-0.5)/(item.rel_time+0.5))
