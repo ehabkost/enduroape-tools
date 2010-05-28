@@ -1,0 +1,57 @@
+body {
+   font-size: 133%;
+   font-family: serif;
+   font-weight: normal;
+}
+
+.passos {
+   font-weight: bold;
+}
+
+.tempo {
+   padding-left: 1em;
+}
+
+.referencia .ref_id {
+    font-weight: bold;
+}
+
+.neutro .passos {
+    font-weight: bold;
+}
+
+td {
+}
+
+table {
+    border-collapse: collapse;
+}
+
+.referencia {
+   border-bottom: 1px solid #333333;
+}
+
+.odd_row {
+   background-color: #999999;
+}
+
+.passos {
+    text-align: right;
+}
+
+.ref_id {
+    text-align: left;
+}
+
+.trecho td {
+    padding-top: 3ex;
+}
+
+.neutro {
+    border-bottom: 1px solid black;
+    border-top: 1px dashed black;
+}
+
+.metros {
+    text-align: right;
+}
