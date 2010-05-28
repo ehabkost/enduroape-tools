@@ -334,8 +334,18 @@ class Page:
             if re.search(u'PINUS COM FITAS', full_line):
                 continue
 
-            if re.search(u'^ *COMO CHEGAR NO HOTEL', full_line):
-                # fim da planilha (04/2010)
+            if re.search(u'^ *A EQUIPE TEM [0-9]+ MINUTOS', full_line):
+                continue
+
+            if re.search(u'^ *SUBIDA. TRANQUILAMENTE COM CUIDADO', full_line):
+                continue
+
+            if re.search(u'^ *COMO CHEGAR (NO|AO|A|NA) ', full_line):
+                # fim da planilha em várias provas => instruções como chegar
+                break
+
+            if re.search(u'^ *NO SITE DO CLUBE', full_line):
+                # fim da planilha (05/2010)
                 break
 
             m = re.search('^ *$', l)
