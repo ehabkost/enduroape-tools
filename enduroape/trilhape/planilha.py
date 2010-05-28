@@ -598,7 +598,7 @@ def parse_pages(opts, pages):
             assert item.rel_dist >= 0
             if item.rel_dist == 0 and st.trecho_dist <> 0:
                 item.add_sidenote("******** rel_dist reset!")
-                logger.error("ref %s: rel_dist é 0 e não é início de trecho", item.ref_id)
+                logger.warn("ref %s: rel_dist é 0 e não é início de trecho", item.ref_id)
 
             if item.rel_time:
                 min_speed = msec_to_mmin((item.rel_dist-0.5)/(item.rel_time+0.5))
@@ -776,7 +776,7 @@ def main(argv):
 
     fname = args[0]
 
-    loglevel = logging.ERROR
+    loglevel = logging.WARN
     if opts.debug:
         loglevel = logging.DEBUG
     logging.basicConfig(stream=sys.stderr, level=loglevel)
