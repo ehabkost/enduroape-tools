@@ -509,7 +509,7 @@ class CircuitoState:
 
         dbg("posicoes_parciais: %d passos", passos)
 
-        MAX_PARCIAL = 20
+        MAX_PARCIAL = 10
 
         if passos < 10:
             return
