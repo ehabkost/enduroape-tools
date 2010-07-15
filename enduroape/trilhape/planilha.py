@@ -350,7 +350,8 @@ class Page:
 
             m = re.search('^ *$', l)
             if not m:
-                raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
+                logger.warn('Page %s, line %d: unexpected line: %r', self.number, i, full_line)
+                #raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
 
         r = check_referencia()
         if r: yield r
