@@ -217,6 +217,7 @@ class Page:
 
         skip_blank()
         skip(u'^ *TREKKERS *$')
+        skip(u'^ *GRADUADOS *$')
         skip_blank()
         skip(u'^ *TRILHA PÉ AVENTURA *$')
         skip_blank()
