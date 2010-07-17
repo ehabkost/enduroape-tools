@@ -312,11 +312,14 @@ class Page:
         # linha onde terminou a última referência
         state.last_ref_data_line = None
 
+        # items prontos para ser retornada
+        state.item_queue = []
+
         def foo():
             dbg("bar")
 
-        def check_referencia():
-            """Verifica se há nova referência pronta para ser enviada"""
+        def _make_referencia():
+            """Verifica se há nova referência (quase) pronta para ser enviada"""
             #dbg("check_ref: cur_abs: %r, cur_rel: %r, cur_time: %r", state.cur_abs, state.cur_relative, state.cur_time)
 
             if state.cur_abs == 0 and state.cur_time is None:
@@ -335,11 +338,32 @@ class Page:
                 state.ref_lines = []
                 return r
 
+        def queue_item(i):
+            state.item_queue.append(i)
+
+        def referencia_finish():
+            """Verifica se há referência pronta e coloca na fila"""
+            r = _make_referencia()
+            if r:
+                queue_item(r)
+
+        def flush_items():
+            """Retorna os items que podem ser retornados"""
+            l = list(state.item_queue)
+            state.item_queue = []
+            for i in l:
+                yield i
+
         def check_ref_col0_data(l):
-            if state.cur_relative is None:
-                m = re.search('^ *([0-9]{3}) *$', l)
-                if m:
+            # the previous item may have finished:
+            m = re.search('^ *([0-9]{3}) *$', l)
+            if m:
+                referencia_finish()
+                if state.cur_relative is None:
                     dbg('got state.cur_rel')
+                    # termina a referência anterior para que possa ser retornada
+                    referencia_finish()
+
                     state.cur_relative = int(m.group(1))
                     state.last_ref_data_line = i
                     state.inside_ref = True
@@ -353,6 +377,9 @@ class Page:
                     assert 0 <= m < 60
                     assert 0 <= s < 60
                     dbg('got state.cur_time')
+                    # termina a referência anterior para que possa ser retornada
+                    referencia_finish()
+
                     state.cur_time = h*3600+m*60+s
                     state.last_ref_data_line = i
                     state.inside_ref = True
@@ -382,8 +409,8 @@ class Page:
             return set(keywords)
 
         for i,l in enumerate(self.col_lines(0)):
-            r = check_referencia()
-            if r: yield r
+            for r in flush_items():
+                yield r
 
             full_line = self.sheet_lines[i]
             dbg('col: %r', l)
@@ -392,9 +419,11 @@ class Page:
             if state.wait_neutro:
                 m = re.search(u'([0-9]{2}):([0-9]{2}):([0-9]{2})', full_line)
                 if m:
+                    referencia_finish()
+
                     h,m,s = [int(s) for s in m.groups()]
                     t = h*3600+m*60+s
-                    yield Neutro(self, i, abs_time=t)
+                    queue_item(Neutro(self, i, abs_time=t))
                     state.wait_neutro = False
                     continue
 
@@ -418,12 +447,16 @@ class Page:
             m = re.search(u'Velocidade Média *([0-9]+) ', full_line)
             if m:
                 assert state.wait_speed
+                referencia_finish()
+
                 vel = int(m.group(1))
-                yield NovoTrecho(self, i, number=state.num_trecho, speed=vel)
+                queue_item(NovoTrecho(self, i, number=state.num_trecho, speed=vel))
                 state.wait_speed = False
 
             #if re.search(r'^ *NEUTRALIZADO DE |CONTINUE A CAMINHADA QUANDO SEU', full_line):
             if re.search(r'^ *NEUTRALIZADO DE ', full_line):
+                referencia_finish()
+
                 state.wait_neutro = True
                 continue
 
@@ -442,8 +475,9 @@ class Page:
                 self.sheet_warn(i, 'unexpected line: %r', full_line)
                 #raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
 
-        r = check_referencia()
-        if r: yield r
+        referencia_finish()
+        for r in flush_items():
+            yield r
 
 
     def show(self, opts):
