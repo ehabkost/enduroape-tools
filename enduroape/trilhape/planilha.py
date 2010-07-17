@@ -215,6 +215,43 @@ class Page:
             u'^ *NO SITE DO CLUBE'
         ]
 
+        KEYWORDS = [
+            'esquerda',
+            ('em frente', 'frente'),
+            'direita',
+
+            'cuidado',
+            'perigo',
+            (u'aten[çc][ãa]o', 'atencao'),
+
+            ('lis[oa]', 'liso'),
+
+            ('sub(r|indo)',  'subir'),
+            ('desce(r|ndo)', 'descer'),
+
+            'rente',
+            'sentido',
+
+            'ponte',
+            'rio',
+            'tanque',
+            'porteira',
+            'trilha',
+            'cerca',
+            'estrada',
+            'mato',
+            'fitas',
+            'cima'
+            'baixo',
+            'barranco',
+            ('arames?', 'arame'),
+            ('buracos?', 'buraco'),
+            'banhado',
+            'torre',
+            'carreiro',
+            'cava',
+        ]
+
         self.sheet_lines = self.lines[:]
 
         def match(pat):
@@ -251,12 +288,28 @@ class Page:
 
         state = O()
 
+        # recently matched cur_rel line
         state.cur_relative = None
+        # recently matched time line
         state.cur_time = None
+        # recently matched cur_abs line
         state.cur_abs = None
+
+        # a linha atual faz parte de uma referência com certeza
+        state.inside_ref = False
+        # linhas presentes nessa referência
+        state.ref_lines = []
+
+        # waiting for timing info on Neutro
         state.wait_neutro = False
+
+        # waiting for Trecho speed info
         state.wait_speed = False
+
+        # número trecho atual
         state.num_trecho = None
+
+        # linha onde terminou a última referência
         state.last_ref_data_line = None
 
         def foo():
@@ -278,7 +331,55 @@ class Page:
                 state.cur_relative = None
                 state.cur_abs = None
                 state.wait_neutro = False
+                state.inside_ref = False
+                state.ref_lines = []
                 return r
+
+        def check_ref_col0_data(l):
+            if state.cur_relative is None:
+                m = re.search('^ *([0-9]{3}) *$', l)
+                if m:
+                    dbg('got state.cur_rel')
+                    state.cur_relative = int(m.group(1))
+                    state.last_ref_data_line = i
+                    state.inside_ref = True
+                    return True
+
+            if state.cur_time is None:
+                m = re.search('^ *([0-9]{2}):([0-9]{2}):([0-9]{2}) *$', l)
+                if m:
+                    h,m,s = [int(s) for s in m.groups()]
+                    assert 0 <= h
+                    assert 0 <= m < 60
+                    assert 0 <= s < 60
+                    dbg('got state.cur_time')
+                    state.cur_time = h*3600+m*60+s
+                    state.last_ref_data_line = i
+                    state.inside_ref = True
+                    return True
+
+            if state.cur_relative is not None and (state.cur_time is not None or state.cur_relative == 0) and state.cur_abs is None:
+                m = re.search('^ *([0-9]{3}) *$', l)
+                if m:
+                    state.cur_abs = int(m.group(1))
+                    state.last_ref_data_line = i
+                    state.inside_ref = True
+                    dbg('got state.cur_abs')
+                    return True
+
+        def check_keywords(line):
+            keywords = []
+            for kw in KEYWORDS:
+                if isinstance(kw, tuple):
+                    regexp,kw = kw
+                else:
+                    regexp = kw
+
+                # whole words only
+                regexp = r'\b%s\b' % (regexp)
+                if re.search(regexp, line, re.UNICODE|re.I):
+                    keywords.append(kw)
+            return set(keywords)
 
         for i,l in enumerate(self.col_lines(0)):
             r = check_referencia()
@@ -297,33 +398,15 @@ class Page:
                     state.wait_neutro = False
                     continue
 
-            if state.cur_relative is None:
-                m = re.search('^ *([0-9]{3}) *$', l)
-                if m:
-                    dbg('got state.cur_rel')
-                    state.cur_relative = int(m.group(1))
-                    state.last_ref_data_line = i
-                    continue
+            ref_data = check_ref_col0_data(l)
 
-            if state.cur_time is None:
-                m = re.search('^ *([0-9]{2}):([0-9]{2}):([0-9]{2}) *$', l)
-                if m:
-                    h,m,s = [int(s) for s in m.groups()]
-                    assert 0 <= h
-                    assert 0 <= m < 60
-                    assert 0 <= s < 60
-                    dbg('got state.cur_time')
-                    state.cur_time = h*3600+m*60+s
-                    state.last_ref_data_line = i
-                    continue
+            if state.inside_ref:
+                # guarda as linhas que fazem parte dessa referência
+                state.ref_lines.append(full_line)
 
-            if state.cur_relative is not None and (state.cur_time is not None or state.cur_relative == 0) and state.cur_abs is None:
-                m = re.search('^ *([0-9]{3}) *$', l)
-                if m:
-                    state.cur_abs = int(m.group(1))
-                    state.last_ref_data_line = i
-                    dbg('got state.cur_abs')
-                    continue
+            if ref_data:
+                # found ref data, no need to check the full_line info below
+                continue
 
             m = re.search('^ *TRECHO +([0-9]+) *$', full_line)
             if m:
@@ -339,7 +422,8 @@ class Page:
                 yield NovoTrecho(self, i, number=state.num_trecho, speed=vel)
                 state.wait_speed = False
 
-            if re.search('^ *NEUTRALIZADO DE ', full_line):
+            #if re.search(r'^ *NEUTRALIZADO DE |CONTINUE A CAMINHADA QUANDO SEU', full_line):
+            if re.search(r'^ *NEUTRALIZADO DE ', full_line):
                 state.wait_neutro = True
                 continue
 
@@ -347,6 +431,11 @@ class Page:
             for n in EXPECTED_NONSTANDARD_LINES:
                 if re.search(n, full_line, re.UNICODE):
                     line_ok = True
+
+            if not state.inside_ref:
+                keywords = check_keywords(full_line)
+                if keywords:
+                    self.sheet_warn(i, 'orphan keywords: %s', ', '.join(keywords))
 
             m = re.search('^ *$', l)
             if not m and not line_ok:
