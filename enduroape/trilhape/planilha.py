@@ -465,6 +465,7 @@ class Page:
             line_ok = False
             for n in EXPECTED_NONSTANDARD_LINES:
                 if re.search(n, full_line, re.UNICODE):
+                    referencia_finish()
                     line_ok = True
 
             if not state.inside_ref:
@@ -474,6 +475,7 @@ class Page:
 
             m = re.search('^ *$', l)
             if not m and not line_ok:
+                referencia_finish()
                 self.sheet_warn(i, 'unexpected line: %r', full_line)
                 #raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
 
