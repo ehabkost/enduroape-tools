@@ -179,8 +179,8 @@ class Page:
         limits = self.col_limits[:]
         limits.append(self.width)
 
-        start = self.col_limits[col]
-        end = self.col_limits[col+1]
+        start = limits[col]
+        end = limits[col+1]
         for l in self.sheet_lines:
             yield l[start:end]
 
