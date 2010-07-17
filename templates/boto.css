@@ -55,3 +55,19 @@ table {
 .metros {
     text-align: right;
 }
+
+.kwtext {
+    display: none;
+}
+
+.keywordlist .cuidado:before {
+    content: "C";
+}
+
+.keywordlist .keyword {
+    width: 10px;
+    height: 10px;
+    background-color: red;
+    display: block;
+    float: right;
+}

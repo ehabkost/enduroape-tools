@@ -887,7 +887,9 @@ class TemplateNamespace:
 def format_template(opts, items):
     ns = TemplateNamespace(opts, items)
     t = Template(file=opts.template_file, searchList=[ns])
-    sys.stdout.write(t.respond())
+    r = t.respond()
+    logger.debug('reponse: %r', r)
+    sys.stdout.write(r.encode('utf-8'))
 
 def main(argv):
     parser = optparse.OptionParser()
