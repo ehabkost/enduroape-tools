@@ -241,7 +241,7 @@ class Page:
             'estrada',
             'mato',
             'fitas',
-            'cima'
+            'cima',
             'baixo',
             'barranco',
             ('arames?', 'arame'),
@@ -329,7 +329,9 @@ class Page:
             if state.cur_relative is not None and state.cur_time is not None and state.cur_abs is not None:
                 dbg("got new reference")
                 # i-1 because the item ended on the previous line
-                r = Referencia(self, state.last_ref_data_line, rel_dist=state.cur_relative, abs_time=state.cur_time, sheet_abs_dist=state.cur_abs)
+                keywords = check_keywords('\n'.join(state.ref_lines))
+
+                r = Referencia(self, state.last_ref_data_line, rel_dist=state.cur_relative, abs_time=state.cur_time, sheet_abs_dist=state.cur_abs, keywords=keywords)
                 state.cur_time = None
                 state.cur_relative = None
                 state.cur_abs = None

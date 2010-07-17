@@ -2,6 +2,12 @@
     #if $i.is_a('NovoTrecho')
         #echo 'TRECHO %d - %d m/s\n' % ($i.number, $i.speed)
     #elif $i.is_a('Referencia') or $i.is_a('Parcial') or $i.is_a('Neutro')
-        #echo '%-5s %s %5.1f %5d\n' % ($i.ref_id, $s.abs_time_str, $i.rel_passos, $i.rel_dist)
+        #if $i.is_a('Referencia'):
+          #set kw = ' [%s]' % (', '.join($i.keywords))
+        #else
+          #set kw = ''
+        #end if
+        #echo '%-5s %s %5.1f %5d%s\n' % ($i.ref_id, $s.abs_time_str, $i.rel_passos, $i.rel_dist, kw)
     #end if
 #end for
+## vim: et ts=2 sw=2
