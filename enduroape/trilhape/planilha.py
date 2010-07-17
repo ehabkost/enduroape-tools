@@ -194,6 +194,11 @@ class Page:
 
         self.add_sidenote(i+offset, note)
 
+    def sheet_warn(self, i, fmt, *args):
+        msg = fmt % args
+        logger.warn("page %s, line %d: %s", self.number, i, msg)
+        self.add_sheet_sidenote(i, 'WARN: %s' % (msg))
+
     def parse_sheet(self):
         """Returns an iterator on the items on the sheet page
         """
@@ -345,7 +350,7 @@ class Page:
 
             m = re.search('^ *$', l)
             if not m and not line_ok:
-                logger.warn('Page %s, line %d: unexpected line: %r', self.number, i, full_line)
+                self.sheet_warn(i, 'unexpected line: %r', full_line)
                 #raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
 
         r = check_referencia()
