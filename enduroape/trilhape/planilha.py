@@ -198,6 +198,18 @@ class Page:
         """Returns an iterator on the items on the sheet page
         """
 
+        EXPECTED_NONSTANDARD_LINES = [
+            u' *QUANDO +SEU +CRONÔMETRO',
+            u'DESLOCAMENTO',
+            u'PINUS COM FITAS',
+            u'^ *A EQUIPE TEM [0-9]+ MINUTOS',
+            u'^ *SUBIDA. TRANQUILAMENTE COM CUIDADO',
+            # fim da planilha em várias provas => instruções como chegar
+            u'^ *COMO CHEGAR (NO|AO|A|NA) '
+            # fim da planilha (05/2010)
+            u'^ *NO SITE DO CLUBE'
+        ]
+
         self.sheet_lines = self.lines[:]
 
         def match(pat):
@@ -326,31 +338,13 @@ class Page:
                 state.wait_neutro = True
                 continue
 
-            if re.search(u' *QUANDO +SEU +CRONÔMETRO', full_line, re.UNICODE):
-                continue
-
-            if re.search(u'DESLOCAMENTO', full_line):
-                continue
-
-            if re.search(u'PINUS COM FITAS', full_line):
-                continue
-
-            if re.search(u'^ *A EQUIPE TEM [0-9]+ MINUTOS', full_line):
-                continue
-
-            if re.search(u'^ *SUBIDA. TRANQUILAMENTE COM CUIDADO', full_line):
-                continue
-
-            if re.search(u'^ *COMO CHEGAR (NO|AO|A|NA) ', full_line):
-                # fim da planilha em várias provas => instruções como chegar
-                break
-
-            if re.search(u'^ *NO SITE DO CLUBE', full_line):
-                # fim da planilha (05/2010)
-                break
+            line_ok = False
+            for n in EXPECTED_NONSTANDARD_LINES:
+                if re.search(n, full_line, re.UNICODE):
+                    line_ok = True
 
             m = re.search('^ *$', l)
-            if not m:
+            if not m and not line_ok:
                 logger.warn('Page %s, line %d: unexpected line: %r', self.number, i, full_line)
                 #raise Exception("unexpected line (%d): %r, %r" % (i, l, full_line))
 
