@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Parsing de planilhas do Trilhapé
@@ -628,7 +628,8 @@ class CircuitoState:
         self._new_ref(ref)
         ref.add_sidenote("Referencia: %s" % (ref.ref_id), -3)
 
-    def posicoes_parciais(self, passos):
+    @staticmethod
+    def posicoes_parciais(passos):
         # algoritmo:
         # - gera 1 parciais de 5, 10, 20, e 30 passos para
         #   pegar 'feeling' da velocidade
@@ -638,30 +639,47 @@ class CircuitoState:
         dbg("posicoes_parciais: %d passos", passos)
 
         MAX_PARCIAL = 10
+        BEGIN_MARKS = (5, 10, 20, 30)
+        #END_MARKS = (40, 30,20,10,5) # the first item is just for reference
+        END_MARKS = (10, 5) # the first item is just for reference
 
         if passos < 10:
             return
 
         lp = 0
-        for p in (5, 10, 20, 30):
+        for p in BEGIN_MARKS:
+            dbg('beginning: %d', p)
             if p >= passos/2:
+                dbg('skipping %d', p)
                 break
             yield p
             lp = p
 
         p = lp+MAX_PARCIAL
-        while p < passos-30:
+        dbg('new p: %d', p)
+        while p < passos-END_MARKS[1]:
             yield p
             lp = p
+            dbg('generated %d', lp)
             p += MAX_PARCIAL
 
-        # arredonda os trechos finais para múltiplos de 5
-        redondo = int((passos+2.5)/5)*5
+        # arredonda os trechos finais para múltiplos de 
+        precisao = END_MARKS[-1]
+        redondo = int((passos+float(precisao/2))/precisao)*precisao
 
-        for mp in (30,20,10,5):
-            p = redondo-mp
-            dbg("ending: %s", p)
-            if p > lp+(mp/2) and p < passos:
+        dbg('redondo: %d', redondo)
+
+        prevs = END_MARKS[:-1]
+        nexts = END_MARKS[1:]
+        for prev,next in zip(prevs, nexts):
+            dbg('prev: %d, next: %d', prev, next)
+            p = redondo-next
+            dbg("ending p: %r", p)
+            interval = prev-next
+            diff = p - lp
+            dbg('interval: %d, diff: %d', interval, diff)
+            if diff >= interval/2 and p < passos:
+                dbg('returning p: %r', p)
                 yield p
                 lp = p
 
