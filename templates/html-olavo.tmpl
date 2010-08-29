@@ -21,8 +21,13 @@
     #echo $i.type
 #end def
 ##
+#set kwicons = {'atencao':u'⚠', 'esquerda':u'←','direita':u'→','frente':u'↑','subir':u'↗','descer':u'↘',u'perigo':u'☠','cuidado':u'☣','liso':u'↝','cerca':u'⦙','rente':u'∥','rio':u'♒','sentido':'☛','barranco':u'⇗','arame':u'⚡','buraco':u'∪','cima':u'↷','baixo':u'↺','torre':u'♜','estrada':'estr.','mato':u'❦','fitas':'ft','banhado':u'♒'}
+##
+#set kw_ignore = set('porteira tanque trilha carreiro'.split())
+##
 <html>
   <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <style>
     #include "templates/olavo.css"
     </style>
@@ -44,6 +49,20 @@
             <td class="ref_id">$i.ref_id</td>
             <td class="tempo">$s.abs_time_str</td>
             <td class="passos">$spassos</td>
+            <td class="keywordlist">
+            #if $i.is_a('Referencia'):
+                #for kw in $i.keywords:
+                    #set ic = kwicons.get(kw)
+                    #if ic:
+                        #echo ic
+                        #echo ' '
+                    #elif kw not in kw_ignore:
+                        #echo kw
+                        #echo ' '
+                    #end if
+                #end for
+            #end if
+            </td>
         </tr>
     #end if
 #end for
