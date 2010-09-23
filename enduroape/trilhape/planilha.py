@@ -171,6 +171,9 @@ class Page:
         self.col_limits = [0]
         self.sidenotes = {}
 
+    def __repr__(self):
+        return '<Page: number: %r>' % (self.number)
+
     @property
     def width(self):
         return self.right-self.left
@@ -554,9 +557,13 @@ def _parse_pages(pages):
         if p.number.startswith('A'):
             # A1, A2, A3: instruction pages
             continue
-        for i in p.parse_sheet():
-            dbg('sheet item: %r', i)
-            yield i
+        try:
+            for i in p.parse_sheet():
+                dbg('sheet item: %r', i)
+                yield i
+        except:
+            sys.stderr.write('FATAL: erro parseando pagina %s\n' % (p.number))
+            raise
 
 def msec_to_mmin(v):
     return v*60
@@ -604,6 +611,8 @@ class CircuitoState:
         self.abs_time = t
 
         t_delta = self.abs_time - self.prev_abs_time
+        dbg('update_abs_time: abs_time %r, prev_abs_time %r, t_delta %r, last_ref %r', self.abs_time, self.prev_abs_time, t_delta, self.last_ref)
+
         assert t_delta >= 0
         assert (t_delta > 0) or (self.prev_abs_time == 0) or (isinstance(self.last_ref, Neutro))
         self.add_time(t_delta)
@@ -724,6 +733,7 @@ def parse_pages(opts, pages):
 
     #for p,(i,cur_relative,cur_time,cur_abs) in _parse_pages(pages):
     for item in _parse_pages(pages):
+        dbg('new item: %r', item)
         if isinstance(item, Referencia):
             # update current state based on new data:
             st.new_ref(item)
