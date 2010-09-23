@@ -611,10 +611,14 @@ class CircuitoState:
         self.abs_time = t
 
         t_delta = self.abs_time - self.prev_abs_time
-        dbg('update_abs_time: abs_time %r, prev_abs_time %r, t_delta %r, last_ref %r', self.abs_time, self.prev_abs_time, t_delta, self.last_ref)
 
-        assert t_delta >= 0
-        assert (t_delta > 0) or (self.prev_abs_time == 0) or (isinstance(self.last_ref, Neutro))
+        dbg('update_abs_time: abs_time %r, prev_abs_time %r, t_delta %r, last_ref %r', self.abs_time, self.prev_abs_time, t_delta, self.last_ref)
+        # assert t_delta >= 0
+        # assert (t_delta > 0) or (self.prev_abs_time == 0) or isinstance(self.last_ref, Neutro)
+        if t_delta < 0:
+            logger.error("negative t_delta! (just after ref: %r)", self.last_ref)
+        if t_delta == 0 and not ((self.prev_abs_time == 0) or isinstance(self.last_ref, Neutro)):
+            logger.error("unexpected zero t_delta (just after ref: %r)", self.last_ref)
         self.add_time(t_delta)
         return t_delta
 
