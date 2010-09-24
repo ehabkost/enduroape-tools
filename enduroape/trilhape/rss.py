@@ -10,7 +10,7 @@ logger = logging.getLogger('trilhape.rss')
 dbg = logger.debug
 
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
+#logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
 
 
 URL = 'http://www.trilhape.com.br/noticias.php'
