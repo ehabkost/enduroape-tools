@@ -82,7 +82,8 @@ def create_feed():
                 title = i.title,
                 link = i.url,
                 guid = PyRSS2Gen.Guid(i.guid, isPermaLink = 0),
-                pubDate = i.date)
+                pubDate = i.date,
+                description = i.content)
             for i in items])
 
 
