@@ -54,7 +54,7 @@ def gen_news_items():
     # I hope this works...
     i.url = URL
 
-    q = {'last_date':str(i.date), 'last_title':i.title, 'content_hash':hash_content(i.content.encode('utf-8'))}
+    q = {'last_date':str(i.date), 'last_title':i.title.encode('utf-8'), 'content_hash':hash_content(i.content.encode('utf-8'))}
     qs = urllib.urlencode(q)
     i.guid = '%s?%s' % (URL, qs)
     yield i
