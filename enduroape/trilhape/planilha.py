@@ -455,7 +455,8 @@ class Page:
                 referencia_finish()
 
                 vel = int(m.group(1))
-                queue_item(NovoTrecho(self, i, number=state.num_trecho, speed=vel))
+                steps_bpm = (vel/PASSO)*2 # passadas (simples) por minuto
+                queue_item(NovoTrecho(self, i, number=state.num_trecho, speed=vel, steps_bpm=steps_bpm))
                 state.wait_speed = False
 
             #if re.search(r'^ *NEUTRALIZADO DE |CONTINUE A CAMINHADA QUANDO SEU', full_line):
