@@ -924,6 +924,15 @@ def format_template(opts, items):
     logger.debug('reponse: %r', r)
     sys.stdout.write(r.encode('utf-8'))
 
+def mime_type(f):
+    proc = subprocess.Popen(['file', '-b', '--mime', f], stdout=subprocess.PIPE)
+    mime = proc.stdout.read()
+    proc.wait()
+    if proc.returncode <> 0:
+        raise Exception("commando 'file' retornou erro!")
+
+    return mime.split('\n')[0].split(';')[0]
+
 def main(argv):
     parser = optparse.OptionParser()
     parser.add_option('-P', help=u"Mostrar páginas originais da planilha", action='store_true', dest='show_pages')
@@ -944,11 +953,14 @@ def main(argv):
         loglevel = logging.DEBUG
     logging.basicConfig(stream=sys.stderr, level=loglevel)
 
-    proc = subprocess.Popen(['pdftotext', '-enc', 'UTF-8', '-layout', fname, '-'], stdout=subprocess.PIPE)
-    lines = proc.stdout.readlines()
-    proc.wait()
-    if proc.returncode <> 0:
-        raise Exception('pdftotext retornou erro!')
+    if mime_type(fname) == 'application/pdf':
+        proc = subprocess.Popen(['pdftotext', '-enc', 'UTF-8', '-layout', fname, '-'], stdout=subprocess.PIPE)
+        lines = proc.stdout.readlines()
+        proc.wait()
+        if proc.returncode <> 0:
+            raise Exception('pdftotext retornou erro!')
+    else:
+        lines = open(fname, 'r').readlines()
 
     lines = [l.rstrip('\n') for l in lines]
     lines = [unicode(l, 'utf-8') for l in lines]
