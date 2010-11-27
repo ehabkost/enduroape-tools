@@ -109,6 +109,18 @@ class CircuitoItem:
         """Shortcut for checking the item class"""
         return self.type.lower() == str(t).lower()
 
+
+# nova página da planilha
+# propriedades: 'number'
+class NewPage(CircuitoItem):
+    def __init__(self, p):
+        self.p = p
+
+    @property
+    def number(self):
+        return self.p.number
+
+
 class PageItem(CircuitoItem):
     """Um item na planilha"""
     def __init__(self, page, sheet_line, **kwargs):
@@ -561,6 +573,7 @@ def _parse_pages(pages):
             # A1, A2, A3: instruction pages
             continue
         try:
+            yield NewPage(p)
             for i in p.parse_sheet():
                 dbg('sheet item: %r', i)
                 yield i
@@ -790,6 +803,8 @@ def parse_pages(opts, pages):
             st.speed = item.speed
             st.last_trecho_num = item.number
             st.reset_trecho()
+        elif isinstance(item, NewPage):
+            pass # nothing special
         else:
             raise Exception("Unexpected item class: %r" % (item))
 

@@ -230,6 +230,9 @@ def generate_soundtrack(opts, items):
             #w.word('velocidade')
             w.number(i.speed)
             w.word('metros-por-segundo')
+        elif i.is_a('NewPage'):
+            w.word('nova-pagina')
+            w.number(i.number)
 
     f.close()
     proc.wait()
