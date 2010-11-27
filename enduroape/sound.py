@@ -157,9 +157,9 @@ def generate_soundtrack(filename, items):
                 info("sem tempo para aviso de passos. ref_id: %r", i.ref_id)
 
             desc = MemoryTrack()
-            desc.wav_file('sounds/instrucoes/2010-11/ref%s.wav' % (i.ref_id))
+            desc.wav_file('sounds/instrucoes/2010-11/ref%d.wav' % (i.ref_index))
             desc.word('referencia')
-            desc.number(int(i.ref_id))
+            desc.number(i.ref_index)
 
             before_desc = i.abs_time - desc.seconds
             if not w.silence_to(before_desc):
