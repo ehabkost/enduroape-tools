@@ -18,7 +18,7 @@ BITS=BYTES*8
 
 SOX_ARGS = ['-t', 'raw', '-r', str(RATE), '-e', SOXENC, '-b', str(BITS)]
 
-MAX_SAMPLES = 65536 # maximum number of samples handled at once, to avoid allocating too much memory
+MAX_SAMPLES = 1024*1024 # maximum number of samples handled at once, to avoid allocating too much memory
 
 TRECHO_LONGO = 50
 
