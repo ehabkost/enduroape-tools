@@ -945,6 +945,7 @@ def main(argv):
     parser.add_option('-D', help=u"Mostrar mensagens de debug", action='store_true', dest='debug')
     parser.add_option('--html', help=u"Formata saída em HTML", action='store_true', dest='html')
     parser.add_option('-t', help=u"Usar arquivo de template Cheetah", action='store', dest='template_file')
+    parser.add_option('-v', help=u"Verbose mode", action='store_true', dest='verbose')
     parser.add_option('-S', help=u"Gerar arquivo de som", metavar='ARQUIVO.WAV', action='store', dest='soundfile')
 
     opts,args = parser.parse_args(argv)
@@ -957,6 +958,8 @@ def main(argv):
     loglevel = logging.WARN
     if opts.debug:
         loglevel = logging.DEBUG
+    elif opts.verbose:
+        loglevel = logging.INFO
     logging.basicConfig(stream=sys.stderr, level=loglevel)
 
     if mime_type(fname) == 'application/pdf':
