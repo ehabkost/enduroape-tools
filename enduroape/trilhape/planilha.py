@@ -28,6 +28,8 @@
 import sys, subprocess, re, optparse
 from Cheetah.Template import Template
 
+import enduroape.sound
+
 import logging
 logger = logging.getLogger('trilhape.planilha')
 dbg = logger.debug
@@ -924,6 +926,9 @@ def format_template(opts, items):
     logger.debug('reponse: %r', r)
     sys.stdout.write(r.encode('utf-8'))
 
+def gen_sound(opts, items):
+    enduroape.sound.generate_soundtrack(opts.soundfile, items)
+
 def mime_type(f):
     proc = subprocess.Popen(['file', '-b', '--mime', f], stdout=subprocess.PIPE)
     mime = proc.stdout.read()
@@ -940,6 +945,7 @@ def main(argv):
     parser.add_option('-D', help=u"Mostrar mensagens de debug", action='store_true', dest='debug')
     parser.add_option('--html', help=u"Formata saída em HTML", action='store_true', dest='html')
     parser.add_option('-t', help=u"Usar arquivo de template Cheetah", action='store', dest='template_file')
+    parser.add_option('-S', help=u"Gerar arquivo de som", metavar='ARQUIVO.WAV', action='store', dest='soundfile')
 
     opts,args = parser.parse_args(argv)
 
@@ -978,7 +984,9 @@ def main(argv):
 
     items = list(parse_pages(opts, pages))
 
-    if opts.html:
+    if opts.soundfile:
+        gen_sound(opts, items)
+    elif opts.html:
         format_html(items)
     elif opts.template_file:
         format_template(opts, items)
