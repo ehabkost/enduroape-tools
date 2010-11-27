@@ -195,7 +195,7 @@ def generate_soundtrack(opts, items):
             if not silence_to(before_desc):
                 late = True
                 delay = w.cur_time()-before_desc
-                info("Pouco tempo para o som. atraso de %.2f segundos Ref: %r. Tempo ref: %.2f. tempo som: %.2f. instruções: %.2f s", delay, i.ref_id, i.abs_time, w.cur_time(), desc.seconds)
+                warn("Pouco tempo para o som. atraso de %.2f segundos Ref: %r. Tempo ref: %.2f. tempo som: %.2f. instruções: %.2f s", delay, i.ref_id, i.abs_time, w.cur_time(), desc.seconds)
                 if delay > worst_late_delay:
                     worst_late_delay = delay
                     worst_late = i
@@ -224,6 +224,12 @@ def generate_soundtrack(opts, items):
             if not silence_to(i.abs_time):
                 warn("Sem tempo para avisar do fim do neutro! (final)")
             w.word('neutro-acabou')
+        elif i.is_a('NovoTrecho'):
+            w.word('novo-trecho')
+            #w.number(i.number)
+            #w.word('velocidade')
+            w.number(i.speed)
+            w.word('metros-por-segundo')
 
     f.close()
     proc.wait()
