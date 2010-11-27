@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
 
 import subprocess, sys
 
 import logging
 
 logger = logging.getLogger('enduroape.sound')
-info = logger.info
 dbg = logger.debug
+info = logger.info
+warn = logger.warn
+error = logger.error
 
 # raw sound file specs:
 RATE=44100
@@ -63,6 +66,16 @@ class SoundGenerator:
         for digit in s:
             self.digit(digit)
 
+    def say_time(self, seconds):
+        seconds = int(seconds)
+        minutes = seconds/60
+        seconds = seconds%60
+
+        if minutes > 0:
+            self.number(minutes)
+            self.word('minutos')
+        self.number(seconds)
+        self.word('segundos')
 
 class MemoryTrack(SoundGenerator):
     def __init__(self):
@@ -130,16 +143,26 @@ def number_track(n):
 def seconds(*tracks):
     return sum(t.seconds for t in tracks)
 
-def generate_soundtrack(filename, items):
-    proc = subprocess.Popen(['sox']+SOX_ARGS+['-','-t','wav',filename], stdin=subprocess.PIPE)
+def generate_soundtrack(opts, items):
+    proc = subprocess.Popen(['sox']+SOX_ARGS+['-','-t','wav',opts.soundfile], stdin=subprocess.PIPE)
     f = proc.stdin
     w = SoundWriter(f)
+
+    def silence_to(t):
+        if opts.no_silence:
+            w.silence(RATE) # silêncio de 1 segundo apenas, para facilitar
+            return True
+
+        return w.silence_to(t)
 
     trecholongo = word_track('trecholongo')
     distnext = word_track('distanciaparaproxima')
     distancia = word_track('distancia')
     metros = word_track('metros')
     passos = word_track('passos')
+
+    worst_late = None
+    worst_late_delay = 0
 
     for state,i in items:
         if i.is_a('Referencia'):
@@ -149,11 +172,17 @@ def generate_soundtrack(filename, items):
             npassos = number_track(int(i.rel_passos))
             nmetros = number_track(i.rel_dist)
 
-            if i.rel_dist > TRECHO_LONGO:
-                w.mem_tracks(trecholongo)
+            desc = MemoryTrack()
+            desc.wav_file('%s/ref%d.wav' % (opts.instructions_dir, i.ref_index))
+            before_desc = i.abs_time - desc.seconds
 
-            remaining = w.time_to(i.abs_time)
-            if False: ### remaining > seconds(distnext, npassos, passos, nmetros, metros):
+            remaining = w.time_to(before_desc)
+            if i.rel_dist == 0:
+                pass
+            elif i.rel_dist > TRECHO_LONGO:
+                w.mem_tracks(trecholongo)
+                w.mem_tracks(distancia, npassos, passos)
+            elif False: ### remaining > seconds(distnext, npassos, passos, nmetros, metros):
                 w.mem_tracks(distnext, npassos, passos, nmetros, metros)
             elif remaining > seconds(distnext, npassos, passos):
                 w.mem_tracks(distnext, npassos, passos)
@@ -162,28 +191,42 @@ def generate_soundtrack(filename, items):
             else:
                 info("sem tempo para aviso de passos. ref_id: %r", i.ref_id)
 
-            desc = MemoryTrack()
-            desc.wav_file('sounds/instrucoes/2010-11/ref%d.wav' % (i.ref_index))
-            desc.word('referencia')
-            desc.number(i.ref_index)
-
-            before_desc = i.abs_time - desc.seconds
-            if not w.silence_to(before_desc):
-                info("Pouco tempo para o som. atraso de %r segundos Ref: %r. Tempo ref: %r. tempo som: %r", w.cur_time()-before_desc, i.ref_id, i.abs_time, w.cur_time())
+            late = False
+            if not silence_to(before_desc):
+                late = True
+                delay = w.cur_time()-before_desc
+                info("Pouco tempo para o som. atraso de %.2f segundos Ref: %r. Tempo ref: %.2f. tempo som: %.2f. instruções: %.2f s", delay, i.ref_id, i.abs_time, w.cur_time(), desc.seconds)
+                if delay > worst_late_delay:
+                    worst_late_delay = delay
+                    worst_late = i
 
             w.mem_tracks(desc)
+            if not silence_to(i.abs_time):
+                delay = w.cur_time()-i.abs_time
+                if not late:
+                    # isso não deveria acontecer
+                    error(u"Panico: não deu tempo de dizer o número da referência? (%.2f secs)", delay)
+
+            w.word('referencia')
+            w.number(i.ref_index)
+
             dbg("we're now at: %r", w.cur_time())
         elif i.is_a('Neutro'):
             tempo = i.abs_time-state.prev_abs_time
 
             w.word('neutrode')
-            w.number(tempo)
-            w.word('segundos')
+            w.say_time(tempo)
 
-            w.silence_to(i.abs_time-10)
+            if not silence_to(i.abs_time-10):
+                warn("Sem tempo para avisar do fim do neutro! (-10s)")
             w.word('10-segundos-neutro')
-            w.silence_to(i.abs_time)
+
+            if not silence_to(i.abs_time):
+                warn("Sem tempo para avisar do fim do neutro! (final)")
             w.word('neutro-acabou')
 
     f.close()
     proc.wait()
+
+    if worst_late is not None:
+        info("Pior atraso: %.2f segundos (referencia: %r)", worst_late_delay, worst_late.ref_id)

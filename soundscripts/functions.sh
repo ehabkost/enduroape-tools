@@ -41,6 +41,11 @@ recrefs()
 		saynumber "$ref" &
 		echo REFERENCIA: $ref
 		read -p "press enter"
+		for n in 2 1;do
+			echo $n...
+			sleep 1;
+		done
+		echo 'ACTION!'
 		$AREC sounds/instrucoes/2010-11/ref$ref.wav
 	done
 }

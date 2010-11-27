@@ -927,7 +927,7 @@ def format_template(opts, items):
     sys.stdout.write(r.encode('utf-8'))
 
 def gen_sound(opts, items):
-    enduroape.sound.generate_soundtrack(opts.soundfile, items)
+    enduroape.sound.generate_soundtrack(opts, items)
 
 def mime_type(f):
     proc = subprocess.Popen(['file', '-b', '--mime', f], stdout=subprocess.PIPE)
@@ -947,6 +947,8 @@ def main(argv):
     parser.add_option('-t', help=u"Usar arquivo de template Cheetah", action='store', dest='template_file')
     parser.add_option('-v', help=u"Verbose mode", action='store_true', dest='verbose')
     parser.add_option('-S', help=u"Gerar arquivo de som", metavar='ARQUIVO.WAV', action='store', dest='soundfile')
+    parser.add_option('--no-silence', help=u"Gera audio sem trecho de silêncio, para teste", action='store_true', dest='no_silence')
+    parser.add_option('-I', help=u"Diretório onde estão os sons das instruções da planilha", action='store', dest='instructions_dir')
 
     opts,args = parser.parse_args(argv)
 
