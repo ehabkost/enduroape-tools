@@ -17,6 +17,8 @@ SOX_ARGS = ['-t', 'raw', '-r', str(RATE), '-e', SOXENC, '-b', str(BITS)]
 
 MAX_SAMPLES = 65536 # maximum number of samples handled at once, to avoid allocating too much memory
 
+TRECHO_LONGO = 50
+
 class SoundGenerator:
     def silence(self, samples):
         while samples > 0:
@@ -133,6 +135,7 @@ def generate_soundtrack(filename, items):
     f = proc.stdin
     w = SoundWriter(f)
 
+    trecholongo = word_track('trecholongo')
     distnext = word_track('distanciaparaproxima')
     distancia = word_track('distancia')
     metros = word_track('metros')
@@ -145,6 +148,9 @@ def generate_soundtrack(filename, items):
 
             npassos = number_track(int(i.rel_passos))
             nmetros = number_track(i.rel_dist)
+
+            if i.rel_dist > TRECHO_LONGO:
+                w.mem_tracks(trecholongo)
 
             remaining = w.time_to(i.abs_time)
             if False: ### remaining > seconds(distnext, npassos, passos, nmetros, metros):
