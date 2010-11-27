@@ -802,6 +802,7 @@ def parse_pages(opts, pages):
 
             st.speed = item.speed
             st.last_trecho_num = item.number
+            st.cur_trecho = item
             st.reset_trecho()
         elif isinstance(item, NewPage):
             pass # nothing special

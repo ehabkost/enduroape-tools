@@ -30,6 +30,7 @@ class SoundGenerator:
             samples -= n
 
     def sox_cmd(self, args, samples=-1, wait=True):
+        dbg('sox command: sox %r', args)
         proc = subprocess.Popen(['sox']+args, stdout=subprocess.PIPE)
         s = samples
         while (samples < 0) or (s > 0):
@@ -51,6 +52,9 @@ class SoundGenerator:
 
     def sox_effect(self, args):
         return self.sox_cmd(['-n']+SOX_ARGS+['-']+args)
+
+    def sine(self, time, freq):
+        return self.sox_effect(['synth', '%.5f' % (time), 'sine', str(freq), 'gain', '-3'])
  
     def wav_file(self, file):
         return self.sox_cmd(['-t','wav',file]+SOX_ARGS+['-'])
@@ -126,6 +130,20 @@ class SoundWriter(SoundGenerator):
         self.silence(samples)
         return True
 
+    def metronome(self, bpm, t):
+        beat_length = 60/float(bpm)
+        last_beat = t-beat_length
+
+        beat = MemoryTrack()
+        beat.wav_file('sounds/click.wav')
+
+        now = self.cur_time()
+        while self.cur_time() < last_beat:
+            self.mem_tracks(beat)
+            now += beat_length
+            self.silence_to(now)
+
+
     def mem_tracks(self, *tracks):
         for t in tracks:
             t.write_to(self)
@@ -191,8 +209,11 @@ def generate_soundtrack(opts, items):
             else:
                 info("sem tempo para aviso de passos. ref_id: %r", i.ref_id)
 
-            late = False
-            if not silence_to(before_desc):
+            remaining = w.time_to(before_desc)
+            late = (remaining < 0)
+            if not late:
+                w.metronome(state.cur_trecho.steps_bpm, before_desc)
+            else:
                 late = True
                 delay = w.cur_time()-before_desc
                 warn("Pouco tempo para o som. atraso de %.2f segundos Ref: %r. Tempo ref: %.2f. tempo som: %.2f. instruções: %.2f s", delay, i.ref_id, i.abs_time, w.cur_time(), desc.seconds)
